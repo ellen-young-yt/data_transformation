@@ -1,0 +1,20 @@
+packages:
+  # dbt-utils: Essential macros for dbt projects
+  - package: dbt-labs/dbt_utils
+    version: 1.1.1
+
+  # dbt-expectations: Great Expectations-inspired tests for dbt
+  - package: calogica/dbt_expectations
+    version: 0.10.1
+
+  # dbt-date: Date and time utilities
+  - package: calogica/dbt_date
+    version: 0.7.0
+
+  # dbt-audit-helper: Utilities for auditing dbt models
+  - package: dbt-labs/audit_helper
+    version: 0.9.0
+
+  # dbt-codegen: Generate dbt code
+  - package: dbt-labs/codegen
+    version: 0.12.1

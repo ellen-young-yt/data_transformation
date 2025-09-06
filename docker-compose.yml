@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  data-transformation:
+    build: .
+    container_name: data_transformation
+    volumes:
+      - .:/app
+      - ./profiles:/app/profiles
+    environment:
+      - DBT_PROFILES_DIR=/app/profiles
+      - DBT_PROJECT_DIR=/app
+    env_file:
+      - .env
+    command: dbt run
+    profiles:
+      - dbt run
+      - dbt test
+      - dbt docs generate
+      - dbt deps
+
+  data-transformation-dev:
+    build: .
+    container_name: data_transformation_dev
+    volumes:
+      - .:/app
+      - ./profiles:/app/profiles
+    environment:
+      - DBT_PROFILES_DIR=/app/profiles
+      - DBT_PROJECT_DIR=/app
+    env_file:
+      - .env.dev
+    command: dbt run --target dev
+    profiles:
+      - dbt run --target dev
+      - dbt test --target dev
+
+  data-transformation-test:
+    build: .
+    container_name: data_transformation_test
+    volumes:
+      - .:/app
+      - ./profiles:/app/profiles
+    environment:
+      - DBT_PROFILES_DIR=/app/profiles
+      - DBT_PROJECT_DIR=/app
+    env_file:
+      - .env.test
+    command: dbt run --target test
+    profiles:
+      - dbt run --target test
+      - dbt test --target test

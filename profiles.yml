@@ -1,0 +1,41 @@
+data_transformation:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'DEV_DATABASE') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'DEV_WAREHOUSE') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'DEV_SCHEMA') }}"
+      threads: 4
+      client_session_keep_alive: False
+      query_tag: "dbt_dev"
+
+    test:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'TEST_DATABASE') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'TEST_WAREHOUSE') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'TEST_SCHEMA') }}"
+      threads: 2
+      client_session_keep_alive: False
+      query_tag: "dbt_test"
+
+    prod:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'PROD_DATABASE') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'PROD_WAREHOUSE') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'PROD_SCHEMA') }}"
+      threads: 8
+      client_session_keep_alive: True
+      query_tag: "dbt_prod"

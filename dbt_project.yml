@@ -1,0 +1,78 @@
+name: 'data_transformation'
+version: '1.0.0'
+config-version: 2
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'data_transformation'
+
+# These configurations specify where dbt should look for different types of files.
+# The `model-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"  # directory which will store compiled SQL files
+clean-targets:         # directories to be removed by `dbt clean`
+  - "target"
+  - "dbt_packages"
+
+# Configuring models
+# Full documentation: https://docs.getdbt.com/reference/model-configs
+models:
+  data_transformation:
+    # Config indicated by + and applies to all files under models/example/
+    +materialized: table
+    +on_schema_change: "fail"
+    +docs:
+      node_color: "blue"
+    
+    # Example of how to configure specific models
+    staging:
+      +materialized: view
+      +on_schema_change: "append_new_columns"
+    
+    marts:
+      +materialized: table
+      +on_schema_change: "fail"
+
+# Configuring tests
+# Full documentation: https://docs.getdbt.com/reference/test-configs
+tests:
+  data_transformation:
+    +store_failures: true
+    +limit: 100
+
+# Configuring snapshots
+# Full documentation: https://docs.getdbt.com/reference/snapshot-configs
+snapshots:
+  data_transformation:
+    +target_schema: snapshots
+    +strategy: timestamp
+    +updated_at: updated_at
+
+# Configuring seeds
+# Full documentation: https://docs.getdbt.com/reference/seed-configs
+seeds:
+  data_transformation:
+    +schema: seed_data
+    +quote_columns: true
+
+# Configuring variables
+# Full documentation: https://docs.getdbt.com/reference/dbt_project.yml#vars
+vars:
+  # Variables can be used in models, tests, and other dbt resources
+  # Example: "{{ var('my_variable') }}"
+  start_date: '2020-01-01'
+  end_date: '2023-12-31'
+
+# Configuring packages
+# Full documentation: https://docs.getdbt.com/reference/dbt_project.yml#packages
+packages-install-path: "dbt_packages"
+
+# Configuring query comments
+# Full documentation: https://docs.getdbt.com/reference/dbt_project.yml#query-comment
+query-comment: "dbt run by {{ target.name }} at {{ run_started_at }}"

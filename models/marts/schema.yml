@@ -1,0 +1,24 @@
+version: 2
+
+# This is an example schema file for marts models
+# Replace with your actual marts models
+
+# models:
+#   - name: dim_customers
+#     description: "Customer dimension table with enriched data"
+#     columns:
+#       - name: customer_id
+#         description: "Unique identifier for the customer"
+#         tests:
+#           - unique
+#           - not_null
+#       - name: customer_name
+#         description: "Customer's full name"
+#         tests:
+#           - not_null
+#       - name: customer_segment
+#         description: "Customer segment based on behavior"
+#         tests:
+#           - not_null
+#           - accepted_values:
+#               values: ['premium', 'standard', 'basic']

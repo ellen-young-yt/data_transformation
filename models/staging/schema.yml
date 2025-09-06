@@ -1,0 +1,24 @@
+version: 2
+
+# This is an example schema file for staging models
+# Replace with your actual staging models
+
+# models:
+#   - name: stg_customers
+#     description: "Cleaned and standardized customer data"
+#     columns:
+#       - name: customer_id
+#         description: "Unique identifier for the customer"
+#         tests:
+#           - unique
+#           - not_null
+#       - name: customer_name
+#         description: "Customer's full name"
+#         tests:
+#           - not_null
+#       - name: email
+#         description: "Customer's email address"
+#         tests:
+#           - not_null
+#           - dbt_expectations.expect_column_values_to_match_regex:
+#               regex: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
