@@ -4,12 +4,12 @@ packages:
     version: 1.1.1
 
   # dbt-expectations: Great Expectations-inspired tests for dbt
-  - package: calogica/dbt_expectations
+  - package: metaplane/dbt_expectations
     version: 0.10.1
 
   # dbt-date: Date and time utilities
   - package: calogica/dbt_date
-    version: 0.7.0
+    version: 0.9.0
 
   # dbt-audit-helper: Utilities for auditing dbt models
   - package: dbt-labs/audit_helper

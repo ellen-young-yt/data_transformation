@@ -1,0 +1,8 @@
+# Terraform Variables Configuration for ECR Repository
+# Copy this file to terraform.tfvars and customize the values
+
+# AWS Configuration
+aws_region = "us-east-2"  # Change to your preferred AWS region
+
+# ECR Configuration
+ecr_repository_name = "data-transformation"

@@ -7,7 +7,18 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 install: ## Install Python dependencies
-	pip install -r requirements.txt
+	@if [ ! -d "venv" ]; then \
+		echo "Creating virtual environment..."; \
+		python -m venv venv; \
+	fi
+	@echo "Installing Python dependencies..."
+	@if [ -f "venv/Scripts/activate" ]; then \
+		venv/Scripts/activate && pip install -r requirements.txt; \
+	elif [ -f "venv/bin/activate" ]; then \
+		venv/bin/activate && pip install -r requirements.txt; \
+	else \
+		pip install -r requirements.txt; \
+	fi
 
 deps: ## Install dbt packages
 	dbt deps
@@ -23,16 +34,16 @@ lint-fix: ## Fix linting issues
 test: ## Run dbt tests
 	dbt test
 
-run: ## Run dbt models
+run: deps ## Run dbt models
 	dbt run
 
-run-dev: ## Run dbt models in dev environment
+run-dev: deps ## Run dbt models in dev environment
 	dbt run --target dev
 
-run-test: ## Run dbt models in test environment
+run-test: deps ## Run dbt models in test environment
 	dbt run --target test
 
-run-prod: ## Run dbt models in production environment
+run-prod: deps ## Run dbt models in production environment
 	dbt run --target prod
 
 clean: ## Clean dbt artifacts
