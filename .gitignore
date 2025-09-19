@@ -73,15 +73,6 @@ logs/
 *.tmp
 *.temp
 
-# Terraform
-**/.terraform/
-**/.terraform.lock.hcl
-**/terraform.tfstate
-**/terraform.tfstate.backup
-**/*.tfplan
-# Track tfvars files but exclude sensitive ones
-**/terraform.tfvars.secret
-**/terraform.tfvars.local
 
 # Development scripts (not tracked)
 dev-scripts/
