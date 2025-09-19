@@ -7,11 +7,18 @@ A production-ready dbt project with comprehensive infrastructure for data modeli
 ```
 data_transformation/
 ├── .github/workflows/     # CI/CD pipeline configuration
-├── deploy/                # Deployment scripts and infrastructure
-│   ├── terraform/         # Terraform infrastructure as code
-│   ├── ecr-setup.sh       # ECR repository setup
-│   ├── lambda-setup.sh    # Lambda function setup
-│   └── deploy.sh          # Complete deployment script
+├── terraform/             # Terraform infrastructure as code
+│   ├── main.tf            # Main infrastructure configuration
+│   ├── variables.tf       # Variable definitions
+│   ├── outputs.tf         # Output definitions
+│   ├── modules/           # Reusable Terraform modules
+│   │   ├── ecr/           # ECR repository module
+│   │   ├── lambda/        # Lambda function module
+│   │   └── iam/           # IAM roles and policies module
+│   └── environments/      # Environment-specific variable files
+│       ├── dev.tfvars     # Development environment variables
+│       ├── staging.tfvars # Staging environment variables
+│       └── prod.tfvars    # Production environment variables
 ├── models/                # dbt models (staging, marts, etc.)
 ├── tests/                 # dbt tests
 ├── seeds/                 # Reference data
@@ -37,7 +44,7 @@ data_transformation/
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.12
 - Git
 - Docker (optional)
 - Snowflake account
@@ -109,11 +116,11 @@ make docker-run
 
 ## ☁️ AWS Infrastructure Setup
 
-### Option 1: Using Terraform (Recommended)
+### Using Terraform
 
 1. Navigate to the terraform directory:
    ```bash
-   cd deploy/terraform
+   cd terraform
    ```
 
 2. Initialize Terraform:
@@ -121,26 +128,14 @@ make docker-run
    terraform init
    ```
 
-3. Plan the deployment:
+3. Plan the deployment (choose dev, staging, or prod):
    ```bash
-   terraform plan
+   terraform plan -var-file=environments/dev.tfvars
    ```
 
 4. Apply the infrastructure:
    ```bash
-   terraform apply
-   ```
-
-### Option 2: Using Shell Scripts
-
-1. Make scripts executable:
-   ```bash
-   chmod +x deploy/*.sh
-   ```
-
-2. Run the complete deployment:
-   ```bash
-   ./deploy/deploy.sh
+   terraform apply -var-file=environments/dev.tfvars
    ```
 
 ## 🚀 Lambda Function Usage
@@ -263,11 +258,11 @@ Configure these secrets in your GitHub repository:
 - `SNOWFLAKE_SCHEMA_PROD`
 
 **AWS:**
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-- `AWS_DEFAULT_REGION`
-- `AWS_LAMBDA_FUNCTION_NAME`
-- `ECR_REPOSITORY_NAME`
+- `AWS_ACCESS_KEY_ID` - AWS access key for deployment
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key for deployment  
+- `AWS_REGION` - AWS region (e.g., us-east-2)
+
+**Note:** With the new Terraform infrastructure, Lambda function and ECR repository names are automatically managed and don't require manual secrets.
 
 ## 📚 Available Commands
 

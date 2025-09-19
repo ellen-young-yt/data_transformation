@@ -4,21 +4,27 @@ help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
 	@echo 'Targets:'
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo '  help            Show this help message'
+	@echo '  install         Install Python dependencies'
+	@echo '  deps            Install dbt packages'
+	@echo '  lint            Run linting'
+	@echo '  lint-fix        Fix linting issues'
+	@echo '  test            Run dbt tests'
+	@echo '  run             Run dbt models'
+	@echo '  run-dev         Run dbt models in dev environment'
+	@echo '  run-test        Run dbt models in test environment'
+	@echo '  run-prod        Run dbt models in production environment'
+	@echo '  clean           Clean dbt artifacts'
+	@echo '  docs            Generate dbt docs'
+	@echo '  docker-build    Build Docker image'
+	@echo '  docker-run      Run dbt in Docker'
+	@echo '  docker-run-dev  Run dbt in Docker (dev environment)'
+	@echo '  docker-run-test Run dbt in Docker (test environment)'
+	@echo '  setup           Initial setup'
 
 install: ## Install Python dependencies
-	@if [ ! -d "venv" ]; then \
-		echo "Creating virtual environment..."; \
-		python -m venv venv; \
-	fi
-	@echo "Installing Python dependencies..."
-	@if [ -f "venv/Scripts/activate" ]; then \
-		venv/Scripts/activate && pip install -r requirements.txt; \
-	elif [ -f "venv/bin/activate" ]; then \
-		venv/bin/activate && pip install -r requirements.txt; \
-	else \
-		pip install -r requirements.txt; \
-	fi
+	python -m venv transform --upgrade-deps || true
+	python -m pip install -r requirements.txt
 
 deps: ## Install dbt packages
 	dbt deps
@@ -32,26 +38,26 @@ lint-fix: ## Fix linting issues
 	sqlfluff fix models/ tests/ macros/
 
 test: ## Run dbt tests
-	dbt test
+	python -c "from dotenv import load_dotenv; load_dotenv(); import os; os.system('dbt test --profiles-dir profiles')"
 
 run: deps ## Run dbt models
-	dbt run
+	python -c "from dotenv import load_dotenv; load_dotenv(); import os; os.system('dbt run --profiles-dir profiles')"
 
 run-dev: deps ## Run dbt models in dev environment
-	dbt run --target dev
+	python -c "from dotenv import load_dotenv; load_dotenv(); import os; os.system('dbt run --target dev --profiles-dir profiles')"
 
 run-test: deps ## Run dbt models in test environment
-	dbt run --target test
+	python -c "from dotenv import load_dotenv; load_dotenv(); import os; os.system('dbt run --target test --profiles-dir profiles')"
 
 run-prod: deps ## Run dbt models in production environment
-	dbt run --target prod
+	python -c "from dotenv import load_dotenv; load_dotenv(); import os; os.system('dbt run --target prod --profiles-dir profiles')"
 
 clean: ## Clean dbt artifacts
-	dbt clean
+	dbt clean --profiles-dir profiles || true
 
 docs: ## Generate dbt docs
-	dbt docs generate
-	dbt docs serve
+	python -c "from dotenv import load_dotenv; load_dotenv(); import os; os.system('dbt docs generate --profiles-dir profiles')"
+	python -c "from dotenv import load_dotenv; load_dotenv(); import os; os.system('dbt docs serve --profiles-dir profiles')"
 
 docker-build: ## Build Docker image
 	docker build -t data-transformation .

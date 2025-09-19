@@ -31,6 +31,7 @@ MANIFEST
 
 # Virtual environments
 venv/
+transform/
 env/
 ENV/
 env.bak/
@@ -71,3 +72,21 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/*.tfplan
+# Track tfvars files but exclude sensitive ones
+**/terraform.tfvars.secret
+**/terraform.tfvars.local
+
+# Development scripts (not tracked)
+dev-scripts/
+
+# Claude-specific files
+CLAUDE.md
+claude.md
+.claude/
