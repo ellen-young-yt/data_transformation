@@ -449,16 +449,16 @@ jobs:
           python -m pip install pip-licenses
 
           # Generate license report
-          python -m pip_licenses \
+          pip-licenses \
             --format=json \
             --output-file=security-reports/licenses.json
 
-          python -m pip_licenses \
+          pip-licenses \
             --format=plain \
             --output-file=security-reports/licenses.txt
 
           # Check for any GPL or AGPL licenses (may be problematic)
-          python -m pip_licenses \
+          pip-licenses \
             --format=json | \
             jq '.[] | select(.License | test("GPL|AGPL"; "i"))' \
             > security-reports/copyleft-licenses.json || echo "[]" > security-reports/copyleft-licenses.json

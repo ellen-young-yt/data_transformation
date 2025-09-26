@@ -217,7 +217,7 @@ runs:
     - name: Generate quality summary
       shell: bash
       run: |
-        cat > quality-reports/summary.md << 'EOF'
+        cat > quality-reports/summary.md << EOF
         # Code Quality Report
 
         ## Summary
