@@ -202,7 +202,7 @@ jobs:
           fi
 
       - name: Upload deployment artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: deployment-${{ needs.detect-environment.outputs.environment }}-${{ github.sha }}
           path: |
@@ -253,7 +253,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: post-deployment-tests-${{ needs.detect-environment.outputs.environment }}
           path: |
