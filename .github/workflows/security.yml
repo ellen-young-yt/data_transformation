@@ -202,7 +202,7 @@ jobs:
           echo "Security findings: Critical=$critical_count, High=$high_count, Medium=$medium_count, Blocking=$blocking_count"
 
       - name: Upload SARIF files to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always() && github.event_name != 'pull_request'
         with:
           sarif_file: |
@@ -317,6 +317,10 @@ jobs:
     name: 'Container Security Scan'
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'  # Skip for PRs to save time
+    permissions:
+      security-events: write  # Required for uploading SARIF results
+      actions: read
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -333,7 +337,7 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
