@@ -93,7 +93,7 @@ runs:
         echo "Environment: ${{ inputs.environment }}"
 
         # Test dbt can parse the project
-        python -m scripts.dbt_commands compile ${{ steps.set-target.outputs.target }} --limit 1 | head -20
+        python -m scripts.dbt_commands compile ${{ steps.set-target.outputs.target }} local
 
         echo "✅ dbt configuration validated successfully"
       env:
