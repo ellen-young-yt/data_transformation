@@ -216,34 +216,53 @@ runs:
 
     - name: Generate quality summary
       shell: bash
+      env:
+        QUALITY_SCORE: ${{ steps.calculate-score.outputs.score }}
+        HAS_ERRORS: ${{ steps.check-results.outputs.has-errors }}
+        HAS_WARNINGS: ${{ steps.check-results.outputs.has-warnings }}
+        PRECOMMIT_EXIT: ${{ steps.pre-commit.outputs.exit_code }}
+        PRECOMMIT_HOOKS_EXIT: ${{ steps.pre-commit.outputs.pre_commit_exit }}
+        MAKE_LINT_EXIT: ${{ steps.pre-commit.outputs.make_lint_exit }}
+        DBT_COMPILE_EXIT: ${{ steps.dbt-analysis.outputs.compile_exit_code }}
+        SECURITY_EXIT: ${{ steps.security.outputs.exit_code }}
       run: |
-        cat > quality-reports/summary.md << EOF
-        # Code Quality Report
+        # Set display values based on exit codes and flags
+        ERRORS_STATUS=$([ "$HAS_ERRORS" = "true" ] && echo "❌ Yes" || echo "✅ No")
+        WARNINGS_STATUS=$([ "$HAS_WARNINGS" = "true" ] && echo "⚠️ Yes" || echo "✅ No")
+        PRECOMMIT_STATUS=$([ "$PRECOMMIT_EXIT" = "0" ] && echo "✅ Passed" || echo "❌ Failed")
+        PRECOMMIT_HOOKS_STATUS=$([ "$PRECOMMIT_HOOKS_EXIT" = "0" ] && echo "✅" || echo "❌")
+        MAKE_LINT_STATUS=$([ "$MAKE_LINT_EXIT" = "0" ] && echo "✅" || echo "❌")
+        DBT_COMPILE_STATUS=$([ "$DBT_COMPILE_EXIT" = "0" ] && echo "✅ Passed" || echo "❌ Failed")
+        SECURITY_STATUS=$([ "$SECURITY_EXIT" = "0" ] && echo "✅ Completed" || echo "⚠️ Issues found")
 
-        ## Summary
-        - **Quality Score**: ${{ steps.calculate-score.outputs.score }}/100
-        - **Errors**: ${{ steps.check-results.outputs.has-errors == 'true' && '❌ Yes' || '✅ No' }}
-        - **Warnings**: ${{ steps.check-results.outputs.has-warnings == 'true' && '⚠️ Yes' || '✅ No' }}
-
-        ## Check Results
-        - **Pre-commit Hooks**: ${{ steps.pre-commit.outputs.exit_code == '0' && '✅ Passed' || '❌ Failed' }}
-          - Pre-commit: ${{ steps.pre-commit.outputs.pre_commit_exit == '0' && '✅' || '❌' }}
-          - Make lint: ${{ steps.pre-commit.outputs.make_lint_exit == '0' && '✅' || '❌' }}
-        - **dbt Compilation**: ${{ steps.dbt-analysis.outputs.compile_exit_code == '0' && '✅ Passed' || '❌ Failed' }}
-        - **Security Analysis**: ${{ steps.security.outputs.exit_code == '0' && '✅ Completed' || '⚠️ Issues found' }}
-          - Multiple security tools executed (Bandit, Safety, pip-audit)
-
-        ## Detailed Reports
-        ### Detailed Reports Available
-        - **lint-report.txt**: Pre-commit hooks and linting results
-        - **security-report.json/txt**: Bandit security analysis
-        - **safety-report.json/txt**: Known vulnerability scan
-        - **pip-audit.json**: Package vulnerability audit
-        - **dbt-compile.txt**: dbt compilation output
-        - **dbt-docs.txt**: Documentation generation log
-
-        Check the uploaded artifacts for complete analysis details.
-        EOF
+        # Generate the summary file using printf to avoid YAML parsing issues
+        {
+          echo "# Code Quality Report"
+          echo ""
+          echo "## Summary"
+          echo "- **Quality Score**: ${QUALITY_SCORE}/100"
+          echo "- **Errors**: ${ERRORS_STATUS}"
+          echo "- **Warnings**: ${WARNINGS_STATUS}"
+          echo ""
+          echo "## Check Results"
+          echo "- **Pre-commit Hooks**: ${PRECOMMIT_STATUS}"
+          echo "  - Pre-commit: ${PRECOMMIT_HOOKS_STATUS}"
+          echo "  - Make lint: ${MAKE_LINT_STATUS}"
+          echo "- **dbt Compilation**: ${DBT_COMPILE_STATUS}"
+          echo "- **Security Analysis**: ${SECURITY_STATUS}"
+          echo "  - Multiple security tools executed (Bandit, Safety, pip-audit)"
+          echo ""
+          echo "## Detailed Reports"
+          echo "### Detailed Reports Available"
+          echo "- **lint-report.txt**: Pre-commit hooks and linting results"
+          echo "- **security-report.json/txt**: Bandit security analysis"
+          echo "- **safety-report.json/txt**: Known vulnerability scan"
+          echo "- **pip-audit.json**: Package vulnerability audit"
+          echo "- **dbt-compile.txt**: dbt compilation output"
+          echo "- **dbt-docs.txt**: Documentation generation log"
+          echo ""
+          echo "Check the uploaded artifacts for complete analysis details."
+        } > quality-reports/summary.md
 
     - name: Upload quality reports
       if: inputs.upload-reports == 'true' && always()
