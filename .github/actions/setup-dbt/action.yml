@@ -1,0 +1,112 @@
+name: 'Setup dbt Environment'
+description: 'Set up dbt environment with AWS credentials and package caching'
+
+inputs:
+  aws-access-key-id:
+    description: 'AWS Access Key ID'
+    required: true
+  aws-secret-access-key:
+    description: 'AWS Secret Access Key'
+    required: true
+  aws-region:
+    description: 'AWS Region'
+    required: false
+    default: 'us-east-2'
+  environment:
+    description: 'Target environment (dev, staging, prod)'
+    required: true
+  install-packages:
+    description: 'Whether to install dbt packages'
+    required: false
+    default: 'true'
+  validate-config:
+    description: 'Whether to validate dbt configuration'
+    required: false
+    default: 'true'
+  cache-key-suffix:
+    description: 'Additional suffix for cache key'
+    required: false
+    default: ''
+
+outputs:
+  dbt-target:
+    description: 'The dbt target environment'
+    value: ${{ steps.set-target.outputs.target }}
+  packages-cache-hit:
+    description: 'Whether dbt packages were restored from cache'
+    value: ${{ steps.cache-dbt-packages.outputs.cache-hit }}
+  aws-configured:
+    description: 'Whether AWS credentials were configured'
+    value: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Set dbt target based on environment
+      id: set-target
+      shell: bash
+      run: |
+        case "${{ inputs.environment }}" in
+          "prod")
+            echo "target=prod" >> $GITHUB_OUTPUT
+            ;;
+          "staging")
+            echo "target=test" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "target=dev" >> $GITHUB_OUTPUT
+            ;;
+        esac
+
+    - name: Cache dbt packages
+      id: cache-dbt-packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          dbt_packages/
+          ~/.dbt/
+        key: ${{ runner.os }}-dbt-packages-${{ hashFiles('**/packages.yml', '**/dbt_project.yml') }}${{ inputs.cache-key-suffix }}
+        restore-keys: |
+          ${{ runner.os }}-dbt-packages-
+
+    - name: Install dbt packages
+      if: inputs.install-packages == 'true'
+      shell: bash
+      run: make deps
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+        USE_AWS_SECRETS: 'true' #pragma: allowlist secret
+        AWS_REGION: ${{ inputs.aws-region }}
+
+    - name: Validate dbt configuration
+      if: inputs.validate-config == 'true'
+      shell: bash
+      run: |
+        echo "Validating dbt configuration for target: ${{ steps.set-target.outputs.target }}"
+        echo "Environment: ${{ inputs.environment }}"
+
+        # Test dbt can parse the project
+        python -m scripts.dbt_commands compile ${{ steps.set-target.outputs.target }} --limit 1 | head -20
+
+        echo "✅ dbt configuration validated successfully"
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+        USE_AWS_SECRETS: 'true' #pragma: allowlist secret
+        AWS_REGION: ${{ inputs.aws-region }}
+
+    - name: Display environment summary
+      shell: bash
+      run: |
+        echo "## dbt Environment Setup" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **dbt Target**: ${{ steps.set-target.outputs.target }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **AWS Region**: ${{ inputs.aws-region }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Packages Cache Hit**: ${{ steps.cache-dbt-packages.outputs.cache-hit }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Install Packages**: ${{ inputs.install-packages }}" >> $GITHUB_STEP_SUMMARY

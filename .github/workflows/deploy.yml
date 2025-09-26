@@ -1,0 +1,402 @@
+name: 'Deploy to Environment'
+
+on:
+  push:
+    branches: [main, staging, develop]
+  workflow_dispatch:  # Allow manual deployment
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      skip-tests:
+        description: 'Skip post-deployment tests'
+        required: false
+        default: false
+        type: boolean
+
+# Prevent concurrent deployments to the same environment
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false  # Don't cancel deployments, let them complete
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  # Determine deployment environment
+  detect-environment:
+    name: 'Detect Environment'
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env-config.outputs.environment }}
+      dbt-target: ${{ steps.env-config.outputs.dbt-target }}
+      is-production: ${{ steps.env-config.outputs.is-production }}
+      aws-region: ${{ steps.env-config.outputs.aws-region }}
+      aws-account-id: ${{ steps.env-config.outputs.aws-account-id }}
+      ecr-repository: ${{ steps.env-config.outputs.ecr-repository }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect and configure environment
+        id: env-config
+        uses: ./.github/actions/detect-environment
+        with:
+          manual-environment: ${{ github.event.inputs.environment }}
+
+  # Pre-deployment validation
+  pre-deployment-checks:
+    name: 'Pre-deployment Validation'
+    runs-on: ubuntu-latest
+    needs: detect-environment
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache-key-suffix: -deploy-${{ needs.detect-environment.outputs.environment }}
+
+      - name: Setup dbt environment
+        uses: ./.github/actions/setup-dbt
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ needs.detect-environment.outputs.aws-region }}
+          environment: ${{ needs.detect-environment.outputs.environment }}
+
+      - name: Run pre-deployment checks
+        uses: ./.github/actions/quality-checks
+        with:
+          fail-on-warnings: ${{ needs.detect-environment.outputs.is-production }}  # Strict checks for production
+          environment: ${{ needs.detect-environment.outputs.environment }}
+
+      - name: Validate deployment readiness
+        run: |
+          echo "## Pre-deployment Validation" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ needs.detect-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target**: ${{ needs.detect-environment.outputs.target }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Production**: ${{ needs.detect-environment.outputs.is-production }}" >> $GITHUB_STEP_SUMMARY
+
+  # Build and push Docker image
+  build-image:
+    name: 'Build & Push Docker Image'
+    runs-on: ubuntu-latest
+    needs: [detect-environment, pre-deployment-checks]
+    outputs:
+      image-uri: ${{ steps.build.outputs.image-uri }}
+      image-tag: ${{ steps.build.outputs.image-tag }}
+      rollback-metadata: ${{ steps.build.outputs.rollback-metadata }}
+      rollback-commit: ${{ steps.build.outputs.rollback-commit }}
+      rollback-reason: ${{ steps.build.outputs.rollback-reason }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.rollback-to-commit || github.sha }}
+          fetch-depth: 0  # Full history for rollback validation
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          install-dependencies: 'false'  # Docker build will handle dependencies
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Docker image
+        id: build
+        env:
+          ECR_REPOSITORY_URL: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+          ENVIRONMENT: ${{ needs.detect-environment.outputs.environment }}
+        run: |
+          # Build image with build args
+          docker build \
+            --build-arg ENVIRONMENT=$ENVIRONMENT \
+            --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+            --build-arg VCS_REF=${{ github.sha }} \
+            --build-arg VERSION=${{ github.ref_name }} \
+            -t $ECR_REPOSITORY_URL:$IMAGE_TAG \
+            -t $ECR_REPOSITORY_URL:$ENVIRONMENT-latest \
+            .
+
+          # Push images
+          docker push $ECR_REPOSITORY_URL:$IMAGE_TAG
+          docker push $ECR_REPOSITORY_URL:$ENVIRONMENT-latest
+
+          # Output image info
+          echo "image-uri=$ECR_REPOSITORY_URL:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "image-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+          echo "## Docker Image Built" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image URI**: $ECR_REPOSITORY_URL:$IMAGE_TAG" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment Tag**: $ECR_REPOSITORY_URL:$ENVIRONMENT-latest" >> $GITHUB_STEP_SUMMARY
+
+  # Deploy and run dbt models
+  deploy:
+    name: 'Deploy to ${{ needs.detect-environment.outputs.environment }}'
+    runs-on: ubuntu-latest
+    needs: [detect-environment, build-image]
+    environment:
+      name: ${{ needs.detect-environment.outputs.environment }}
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache-key-suffix: -deploy-${{ needs.detect-environment.outputs.environment }}
+
+      - name: Setup dbt environment
+        uses: ./.github/actions/setup-dbt
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ needs.detect-environment.outputs.aws-region }}
+          environment: ${{ needs.detect-environment.outputs.environment }}
+
+      - name: Run dbt deployment
+        id: deploy
+        run: |
+          echo "Deploying to ${{ needs.detect-environment.outputs.environment }} environment..."
+
+          # Run dbt build (models + tests)
+          make build ENV=${{ needs.detect-environment.outputs.target }}
+
+          # Generate documentation
+          make docs ENV=${{ needs.detect-environment.outputs.target }}
+
+          echo "deployment-url=https://docs.example.com/${{ needs.detect-environment.outputs.environment }}" >> $GITHUB_OUTPUT
+
+          # Log deployment details for rollback purposes
+          echo "Deployment completed successfully" >> deployment.log
+          echo "Environment: ${{ needs.detect-environment.outputs.environment }}" >> deployment.log
+          echo "Commit: ${{ github.sha }}" >> deployment.log
+          echo "Image: ${{ needs.build-image.outputs.image-uri }}" >> deployment.log
+          echo "Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> deployment.log
+          if [ "${{ needs.build-image.outputs.rollback-metadata }}" = "true" ]; then
+            echo "ROLLBACK - Original commit: ${{ needs.build-image.outputs.rollback-commit }}" >> deployment.log
+            echo "ROLLBACK - Reason: ${{ needs.build-image.outputs.rollback-reason }}" >> deployment.log
+          fi
+
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-${{ needs.detect-environment.outputs.environment }}-${{ github.sha }}
+          path: |
+            target/
+            logs/
+            deployment.log
+          retention-days: 90
+
+  # Post-deployment tests
+  post-deployment-tests:
+    name: 'Post-deployment Tests'
+    runs-on: ubuntu-latest
+    needs: [detect-environment, deploy]
+    if: github.event.inputs.skip-tests != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache-key-suffix: -deploy-${{ needs.detect-environment.outputs.environment }}
+
+      - name: Setup dbt environment
+        uses: ./.github/actions/setup-dbt
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ needs.detect-environment.outputs.aws-region }}
+          environment: ${{ needs.detect-environment.outputs.environment }}
+
+      - name: Run integration tests
+        run: |
+          echo "Running post-deployment tests..."
+
+          # Run integration tests with appropriate error handling
+          if [ "${{ needs.detect-environment.outputs.is-production }}" == "true" ]; then
+            # Strict testing for production
+            make test-integration ENV=${{ needs.detect-environment.outputs.dbt-target }}
+          else
+            # Allow warnings for non-production
+            make test-integration ENV=${{ needs.detect-environment.outputs.dbt-target }} || {
+              echo "⚠️ Integration tests completed with warnings (non-production environment)"
+              echo "test_warnings=true" >> $GITHUB_ENV
+            }
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: post-deployment-tests-${{ needs.detect-environment.outputs.environment }}
+          path: |
+            target/
+            logs/
+          retention-days: 30
+
+  # Enhanced deployment notifications and rollback support
+  deployment-notifications:
+    name: 'Deployment Notifications'
+    runs-on: ubuntu-latest
+    needs: [detect-environment, build-image, deploy, post-deployment-tests]
+    if: always()
+    steps:
+      - name: Send rollback notification
+        if: needs.build-image.outputs.rollback-metadata == 'true'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const environment = '${{ needs.detect-environment.outputs.environment }}';
+            const rollbackCommit = '${{ needs.build-image.outputs.rollback-commit }}';
+            const rollbackReason = '${{ needs.build-image.outputs.rollback-reason }}';
+            const deployResult = '${{ needs.deploy.result }}';
+            const testResult = '${{ needs.post-deployment-tests.result }}';
+
+            const title = '🔄 Rollback ' + (deployResult === 'success' ? 'Completed' : 'Failed') + ': ' + environment.toUpperCase();
+            const body = '## Rollback Deployment Report\n\n' +
+              '**Environment**: ' + environment + '\n' +
+              '**Status**: ' + (deployResult === 'success' ? '✅ Success' : '❌ Failed') + '\n' +
+              '**Rollback Commit**: ' + rollbackCommit + '\n' +
+              '**Reason**: ' + rollbackReason + '\n' +
+              '**Initiated by**: ${{ github.actor }}\n\n' +
+              '**Test Results**: ' + (testResult === 'success' ? '✅ Passed' : testResult === 'failure' ? '❌ Failed' : '⏭️ Skipped') + '\n\n' +
+              '**Workflow**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\n\n' +
+              (deployResult !== 'success' ? '⚠️ **Rollback failed - manual intervention may be required**' : '');
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['rollback', 'deployment', environment, deployResult === 'success' ? 'success' : 'failed']
+            });
+
+      - name: Create rollback tracking issue
+        if: |
+          needs.build-image.outputs.rollback-metadata == 'true' &&
+          (needs.deploy.result != 'success' || needs.post-deployment-tests.result == 'failure')
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const title = '🚨 URGENT: Rollback Issues in ${{ needs.detect-environment.outputs.environment }}';
+            const body = '## Rollback Issues Detected\n\n' +
+              '**URGENT ACTION REQUIRED**\n\n' +
+              'A rollback deployment has encountered issues and may require manual intervention.\n\n' +
+              '**Details:**\n' +
+              '- Environment: ${{ needs.detect-environment.outputs.environment }}\n' +
+              '- Rollback Commit: ${{ needs.build-image.outputs.rollback-commit }}\n' +
+              '- Reason for Rollback: ${{ needs.build-image.outputs.rollback-reason }}\n' +
+              '- Deploy Result: ${{ needs.deploy.result }}\n' +
+              '- Test Result: ${{ needs.post-deployment-tests.result }}\n\n' +
+              '**Immediate Actions:**\n' +
+              '- [ ] Verify system status in ${{ needs.detect-environment.outputs.environment }}\n' +
+              '- [ ] Check application health and functionality\n' +
+              '- [ ] Review deployment logs and error messages\n' +
+              '- [ ] Consider manual rollback procedures if needed\n' +
+              '- [ ] Notify stakeholders of any service impact\n\n' +
+              '**Workflow Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}';
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['urgent', 'rollback', 'deployment-failure', 'manual-intervention-required', '${{ needs.detect-environment.outputs.environment }}']
+            });
+
+  # Deployment summary and notification
+  deployment-summary:
+    name: 'Deployment Summary'
+    runs-on: ubuntu-latest
+    needs: [detect-environment, build-image, deploy, post-deployment-tests, deployment-notifications]
+    if: always()
+    steps:
+      - name: Generate deployment summary
+        run: |
+          echo "# Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Environment: ${{ needs.detect-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Deployment Details" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.build-image.outputs.rollback-metadata }}" = "true" ]; then
+            echo "- **Type**: 🔄 Rollback Deployment" >> $GITHUB_STEP_SUMMARY
+            echo "- **Original Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Rollback to Commit**: ${{ needs.build-image.outputs.rollback-commit }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Rollback Reason**: ${{ needs.build-image.outputs.rollback-reason }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Initiated by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Type**: 🚀 Normal Deployment" >> $GITHUB_STEP_SUMMARY
+            echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- **Image**: ${{ needs.build-image.outputs.image-uri }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ needs.detect-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Job Status" >> $GITHUB_STEP_SUMMARY
+
+          # Check all job results
+          if [ "${{ needs.build-image.result }}" == "success" ]; then
+            echo "- ✅ **Image Build**: Success" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **Image Build**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "- ✅ **Deployment**: Success" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **Deployment**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ github.event.inputs.skip-tests }}" == "true" ]; then
+            echo "- ⏭️ **Post-deployment Tests**: Skipped" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.post-deployment-tests.result }}" == "success" ]; then
+            echo "- ✅ **Post-deployment Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⚠️ **Post-deployment Tests**: Issues found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check deployment status
+        run: |
+          if [ "${{ needs.deploy.result }}" != "success" ]; then
+            echo "❌ Deployment failed!"
+            exit 1
+          elif [ "${{ needs.post-deployment-tests.result }}" == "failure" ] && [ "${{ needs.detect-environment.outputs.is-production }}" == "true" ]; then
+            echo "❌ Production deployment failed post-deployment tests!"
+            exit 1
+          else
+            echo "✅ Deployment completed successfully!"
+          fi
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Successfully deployed to ${{ needs.detect-environment.outputs.environment }}"
+          echo "Image: ${{ needs.build-image.outputs.image-uri }}"
+          echo "Commit: ${{ github.sha }}"

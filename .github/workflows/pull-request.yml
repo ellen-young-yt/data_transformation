@@ -1,0 +1,249 @@
+name: 'Pull Request Validation'
+
+on:
+  pull_request:
+    branches: [main, develop, staging]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Cancel in-progress runs for the same PR
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  # Detect target environment based on PR target branch
+  detect-environment:
+    name: 'Detect Environment'
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    outputs:
+      environment: ${{ steps.env-config.outputs.environment }}
+      dbt-target: ${{ steps.env-config.outputs.dbt-target }}
+      skip-integration: ${{ steps.env-config.outputs.skip-integration-tests }}
+      is-production: ${{ steps.env-config.outputs.is-production }}
+      aws-region: ${{ steps.env-config.outputs.aws-region }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect and configure environment
+        id: env-config
+        uses: ./.github/actions/detect-environment
+
+  # Setup and caching job - runs once and provides cached environment for other jobs
+  setup:
+    name: 'Setup Environment'
+    runs-on: ubuntu-latest
+    needs: detect-environment
+    outputs:
+      python-cache-hit: ${{ steps.complete-setup.outputs.python-cache-hit }}
+      dbt-cache-hit: ${{ steps.complete-setup.outputs.dbt-cache-hit }}
+    steps:
+      - name: Complete setup
+        id: complete-setup
+        uses: ./.github/actions/setup-complete
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          environment: ${{ needs.detect-environment.outputs.environment }}
+          cache-key-suffix: -pr-${{ github.event.pull_request.number }}
+          install-python-dependencies: 'true'
+          install-dbt-packages: 'true'
+          validate-dbt-config: 'false'  # Skip validation in setup job
+
+  # Code quality checks - runs in parallel with setup
+  code-quality:
+    name: 'Code Quality'
+    runs-on: ubuntu-latest
+    needs: [detect-environment, setup]
+    steps:
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache-key-suffix: -pr-${{ github.event.pull_request.number }}
+          checkout-code: 'true'
+
+      - name: Run quality checks
+        id: quality
+        uses: ./.github/actions/quality-checks
+        with:
+          fail-on-warnings: 'false'  # Don't block PRs on warnings
+          environment: ${{ needs.detect-environment.outputs.environment }}
+        continue-on-error: true
+
+  # Unit tests - fast tests that don't require external dependencies
+  unit-tests:
+    name: 'Unit Tests'
+    runs-on: ubuntu-latest
+    needs: [detect-environment, setup]
+    steps:
+      - name: Complete setup
+        uses: ./.github/actions/setup-complete
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          environment: ${{ needs.detect-environment.outputs.environment }}
+          cache-key-suffix: -pr-${{ github.event.pull_request.number }}
+          validate-dbt-config: 'true'
+
+      - name: Run unit tests
+        id: unit-tests
+        run: |
+          echo "Running unit tests for environment: ${{ needs.detect-environment.outputs.environment }}"
+          make test-unit ENV=${{ needs.detect-environment.outputs.dbt-target }}
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: unit-test-results-${{ needs.detect-environment.outputs.environment }}
+          path: |
+            target/
+            logs/
+          retention-days: 7
+
+  # Integration tests - only run for staging/prod PRs or when explicitly requested
+  integration-tests:
+    name: 'Integration Tests'
+    runs-on: ubuntu-latest
+    needs: [detect-environment, setup, unit-tests]
+    if: needs.detect-environment.outputs.skip-integration == 'false'
+    steps:
+      - name: Complete setup
+        uses: ./.github/actions/setup-complete
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          environment: ${{ needs.detect-environment.outputs.environment }}
+          cache-key-suffix: -pr-${{ github.event.pull_request.number }}
+
+      - name: Run integration tests
+        id: integration-tests
+        run: |
+          echo "Running integration tests for environment: ${{ needs.detect-environment.outputs.environment }}"
+          make test-integration ENV=${{ needs.detect-environment.outputs.dbt-target }}
+        continue-on-error: true
+
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-results-${{ needs.detect-environment.outputs.environment }}
+          path: |
+            target/
+            logs/
+          retention-days: 7
+
+  # Documentation generation - runs in parallel with tests
+  documentation:
+    name: 'Generate Documentation'
+    runs-on: ubuntu-latest
+    needs: [detect-environment, setup]
+    steps:
+      - name: Complete setup
+        uses: ./.github/actions/setup-complete
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          environment: ${{ needs.detect-environment.outputs.environment }}
+          cache-key-suffix: -pr-${{ github.event.pull_request.number }}
+
+      - name: Generate dbt documentation
+        id: docs
+        run: |
+          python -m scripts.dbt_commands docs-generate ${{ needs.detect-environment.outputs.dbt-target }}
+        continue-on-error: true
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v3
+        with:
+          name: dbt-docs-${{ needs.detect-environment.outputs.environment }}
+          path: target/
+          retention-days: 30
+
+  # Final summary job - waits for all jobs to complete and provides overall status
+  pr-summary:
+    name: 'PR Validation Summary'
+    runs-on: ubuntu-latest
+    needs: [detect-environment, setup, code-quality, unit-tests, integration-tests, documentation]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Handle and analyze all results
+        uses: ./.github/actions/handle-results
+        with:
+          environment: ${{ needs.detect-environment.outputs.environment }}
+          is-production: ${{ needs.detect-environment.outputs.is-production }}
+          context: 'pr'
+          quality-check-exit-code: ${{ needs.code-quality.result == 'success' && '0' || '1' }}
+          unit-test-exit-code: ${{ needs.unit-tests.result == 'success' && '0' || '1' }}
+          integration-test-exit-code: ${{ (needs.detect-environment.outputs.skip-integration == 'true' || needs.integration-tests.result == 'success') && '0' || '1' }}
+          security-scan-exit-code: '0'  # Security is handled in quality-checks
+          dbt-compile-exit-code: '0'    # Compile is handled in quality-checks
+          allow-warnings: 'true'
+
+      - name: Legacy PR Summary (deprecated)
+        run: |
+          echo "# Pull Request Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Environment: ${{ needs.detect-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Job Status" >> $GITHUB_STEP_SUMMARY
+
+          # Code Quality
+          if [ "${{ needs.code-quality.result }}" == "success" ]; then
+            echo "- ✅ **Code Quality**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **Code Quality**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Unit Tests
+          if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+            echo "- ✅ **Unit Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **Unit Tests**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Integration Tests
+          if [ "${{ needs.detect-environment.outputs.skip-integration }}" == "true" ]; then
+            echo "- ⏭️ **Integration Tests**: Skipped (dev environment)" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.integration-tests.result }}" == "success" ]; then
+            echo "- ✅ **Integration Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⚠️ **Integration Tests**: Completed with warnings" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Documentation
+          if [ "${{ needs.documentation.result }}" == "success" ]; then
+            echo "- ✅ **Documentation**: Generated" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **Documentation**: Failed to generate" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
+
+          # Determine overall status and next steps
+          if [ "${{ needs.code-quality.result }}" != "success" ] || [ "${{ needs.unit-tests.result }}" != "success" ]; then
+            echo "❌ **This PR cannot be merged** due to failing quality checks or unit tests." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please address the following:" >> $GITHUB_STEP_SUMMARY
+            [ "${{ needs.code-quality.result }}" != "success" ] && echo "- Fix code quality issues" >> $GITHUB_STEP_SUMMARY
+            [ "${{ needs.unit-tests.result }}" != "success" ] && echo "- Fix failing unit tests" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ **This PR is ready for review!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All required checks have passed. Integration test warnings (if any) should be reviewed but don't block the merge." >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,0 +1,681 @@
+name: 'Security Scanning'
+
+on:
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  push:
+    branches: [main, staging, develop]
+  pull_request:
+    branches: [main, staging, develop]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:  # Allow manual execution
+    inputs:
+      severity-threshold:
+        description: 'Minimum severity to report (low, medium, high, critical)'
+        required: false
+        default: 'medium'
+        type: choice
+        options:
+          - low
+          - medium
+          - high
+          - critical
+
+# Allow only one security scan per branch
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  # Static Application Security Testing (SAST)
+  detect-context:
+    name: 'Detect Security Context'
+    runs-on: ubuntu-latest
+    outputs:
+      is-pull-request: ${{ steps.context.outputs.is-pull-request }}
+      target-environment: ${{ steps.context.outputs.target-environment }}
+      severity-threshold: ${{ steps.context.outputs.severity-threshold }}
+      should-block: ${{ steps.context.outputs.should-block }}
+    steps:
+      - name: Determine security context
+        id: context
+        run: |
+          is_pr="false"
+          should_block="false"
+          severity_threshold="medium"
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            is_pr="true"
+            target_branch="${{ github.event.pull_request.base.ref }}"
+            # Stricter security for PRs to main/staging
+            if [ "$target_branch" = "main" ] || [ "$target_branch" = "staging" ]; then
+              should_block="true"
+              severity_threshold="high"
+            fi
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            severity_threshold="${{ github.event.inputs.severity-threshold }}"
+          fi
+
+          case "${{ github.ref_name }}" in
+            "main")
+              target_environment="prod"
+              should_block="true"
+              severity_threshold="high"
+              ;;
+            "staging")
+              target_environment="staging"
+              should_block="true"
+              ;;
+            *)
+              target_environment="dev"
+              ;;
+          esac
+
+          echo "is-pull-request=$is_pr" >> $GITHUB_OUTPUT
+          echo "target-environment=$target_environment" >> $GITHUB_OUTPUT
+          echo "severity-threshold=$severity_threshold" >> $GITHUB_OUTPUT
+          echo "should-block=$should_block" >> $GITHUB_OUTPUT
+
+          echo "Security context: PR=$is_pr, Env=$target_environment, Threshold=$severity_threshold, Block=$should_block"
+
+  sast-scan:
+    name: 'Static Security Analysis'
+    runs-on: ubuntu-latest
+    needs: detect-context
+    permissions:
+      security-events: write  # Required for uploading SARIF results
+      actions: read
+      contents: read
+    outputs:
+      critical-issues: ${{ steps.analyze.outputs.critical-issues }}
+      high-issues: ${{ steps.analyze.outputs.high-issues }}
+      medium-issues: ${{ steps.analyze.outputs.medium-issues }}
+      blocking-issues: ${{ steps.analyze.outputs.blocking-issues }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run comprehensive security analysis
+        id: security-scan
+        run: |
+          # Create security reports directory
+          mkdir -p security-reports
+
+          # Install security tools
+          python -m pip install bandit safety pip-audit semgrep
+
+          echo "Running Bandit SAST scanner..."
+          # Run bandit with detailed output and configurable severity
+          python -m bandit -r scripts/ \
+            -f json -o security-reports/bandit-report.json \
+            -f txt -o security-reports/bandit-report.txt \
+            --severity-level ${{ needs.detect-context.outputs.severity-threshold }} || true
+
+          # Generate SARIF format for GitHub Security tab
+          python -m bandit -r scripts/ \
+            -f sarif -o security-reports/bandit.sarif \
+            --severity-level ${{ needs.detect-context.outputs.severity-threshold }} || true
+
+          echo "Running Safety vulnerability scanner..."
+          # Run safety check for dependencies
+          python -m safety check --json --output security-reports/safety-report.json || true
+
+          echo "Running pip-audit..."
+          # Run pip-audit for additional vulnerability detection
+          python -m pip-audit --format=json --output=security-reports/pip-audit.json || true
+
+      - name: Run Semgrep SAST
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+          generateSarif: true
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          auditOn: push
+        continue-on-error: true
+
+      - name: Analyze security findings
+        id: analyze
+        run: |
+          critical_count=0
+          high_count=0
+          medium_count=0
+          blocking_count=0
+
+          # Parse Bandit results
+          if [ -f "security-reports/bandit-report.json" ]; then
+            # Count issues by severity
+            critical_bandit=$(jq '[.results[] | select(.issue_severity == "HIGH" and .issue_confidence == "HIGH")] | length' security-reports/bandit-report.json || echo "0")
+            high_bandit=$(jq '[.results[] | select(.issue_severity == "HIGH" or (.issue_severity == "MEDIUM" and .issue_confidence == "HIGH"))] | length' security-reports/bandit-report.json || echo "0")
+            medium_bandit=$(jq '[.results[] | select(.issue_severity == "MEDIUM")] | length' security-reports/bandit-report.json || echo "0")
+
+            critical_count=$((critical_count + critical_bandit))
+            high_count=$((high_count + high_bandit))
+            medium_count=$((medium_count + medium_bandit))
+          fi
+
+          # Parse Safety results
+          if [ -f "security-reports/safety-report.json" ]; then
+            safety_vulns=$(jq 'length' security-reports/safety-report.json || echo "0")
+            # Treat all safety vulnerabilities as high severity
+            high_count=$((high_count + safety_vulns))
+          fi
+
+          # Parse pip-audit results
+          if [ -f "security-reports/pip-audit.json" ]; then
+            audit_vulns=$(jq '.vulnerabilities | length' security-reports/pip-audit.json || echo "0")
+            medium_count=$((medium_count + audit_vulns))
+          fi
+
+          # Determine blocking issues based on context
+          threshold="${{ needs.detect-context.outputs.severity-threshold }}"
+          case "$threshold" in
+            "critical")
+              blocking_count=$critical_count
+              ;;
+            "high")
+              blocking_count=$((critical_count + high_count))
+              ;;
+            "medium")
+              blocking_count=$((critical_count + high_count + medium_count))
+              ;;
+            *)
+              blocking_count=$((critical_count + high_count + medium_count))
+              ;;
+          esac
+
+          echo "critical-issues=$critical_count" >> $GITHUB_OUTPUT
+          echo "high-issues=$high_count" >> $GITHUB_OUTPUT
+          echo "medium-issues=$medium_count" >> $GITHUB_OUTPUT
+          echo "blocking-issues=$blocking_count" >> $GITHUB_OUTPUT
+
+          echo "Security findings: Critical=$critical_count, High=$high_count, Medium=$medium_count, Blocking=$blocking_count"
+
+      - name: Upload SARIF files to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always() && github.event_name != 'pull_request'
+        with:
+          sarif_file: |
+            security-reports/bandit.sarif
+            semgrep.sarif
+        continue-on-error: true
+
+      - name: Generate security summary for PRs
+        if: needs.detect-context.outputs.is-pull-request == 'true'
+        run: |
+          echo "## 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Environment**: ${{ needs.detect-context.outputs.target-environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Severity Threshold**: ${{ needs.detect-context.outputs.severity-threshold }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Findings" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔴 **Critical**: ${{ steps.analyze.outputs.critical-issues }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🟠 **High**: ${{ steps.analyze.outputs.high-issues }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🟡 **Medium**: ${{ steps.analyze.outputs.medium-issues }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🚫 **Blocking Issues**: ${{ steps.analyze.outputs.blocking-issues }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.analyze.outputs.blocking-issues }}" -gt "0" ] && [ "${{ needs.detect-context.outputs.should-block }}" = "true" ]; then
+            echo "❌ **This PR is BLOCKED due to security issues above the threshold.**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please address the security findings before merging." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **Security scan passed** - no blocking issues found." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: sast-security-reports
+          path: security-reports/
+          retention-days: 30
+
+  # Dependency vulnerability scanning
+  dependency-scan:
+    name: 'Dependency Security Scan'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run Safety check for known vulnerabilities
+        run: |
+          mkdir -p security-reports
+
+          # Install safety if not already installed
+          python -m pip install safety
+
+          # Run safety check
+          python -m safety check \
+            --json --output security-reports/safety-report.json || true
+
+          python -m safety check \
+            --output security-reports/safety-report.txt || true
+
+      - name: Run pip-audit for vulnerabilities
+        run: |
+          # Install pip-audit
+          python -m pip install pip-audit
+
+          # Run pip-audit
+          python -m pip-audit \
+            --format=json --output=security-reports/pip-audit.json || true
+
+          python -m pip-audit \
+            --output=security-reports/pip-audit.txt || true
+
+      - name: Analyze dependency vulnerabilities
+        run: |
+          echo "## Dependency Security Analysis" >> $GITHUB_STEP_SUMMARY
+
+          # Check safety results
+          if [ -f "security-reports/safety-report.json" ]; then
+            vuln_count=$(jq 'length' security-reports/safety-report.json 2>/dev/null || echo "0")
+            if [ "$vuln_count" -gt "0" ]; then
+              echo "- ⚠️ **Safety scan**: $vuln_count vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ✅ **Safety scan**: No known vulnerabilities" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          # Check pip-audit results
+          if [ -f "security-reports/pip-audit.json" ]; then
+            audit_issues=$(jq '.vulnerabilities | length' security-reports/pip-audit.json 2>/dev/null || echo "0")
+            if [ "$audit_issues" -gt "0" ]; then
+              echo "- ⚠️ **Pip-audit**: $audit_issues issues found" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ✅ **Pip-audit**: No issues found" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Upload dependency reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: dependency-security-reports
+          path: security-reports/
+          retention-days: 30
+
+  # Container security scanning
+  container-scan:
+    name: 'Container Security Scan'
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'  # Skip for PRs to save time
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image for scanning
+        run: |
+          docker build -t local-security-scan:latest .
+
+      - name: Run Trivy container scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'local-security-scan:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Docker Scout (if available)
+        run: |
+          # Install Docker Scout
+          curl -sSfL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh | sh -s --
+
+          # Run Docker Scout scan
+          docker scout cves local-security-scan:latest --format sarif --output scout-results.sarif || true
+        continue-on-error: true
+
+      - name: Upload container scan results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: container-security-reports
+          path: |
+            trivy-results.sarif
+            scout-results.sarif
+          retention-days: 30
+
+  # Enhanced secret scanning
+  secret-scan:
+    name: 'Secret Detection'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for comprehensive secret detection
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run detect-secrets
+        run: |
+          mkdir -p security-reports
+
+          # Run detect-secrets scan
+          python -m detect_secrets scan \
+            --all-files \
+            --baseline .secrets.baseline \
+            --format json > security-reports/secrets-scan.json || true
+
+          # Generate human-readable report
+          python -m detect_secrets audit \
+            --baseline .secrets.baseline \
+            --stats > security-reports/secrets-audit.txt || true
+
+      - name: Run TruffleHog secret scanner
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --json --output=security-reports/trufflehog-results.json
+        continue-on-error: true
+
+      - name: Analyze secret scan results
+        run: |
+          echo "## Secret Scanning Results" >> $GITHUB_STEP_SUMMARY
+
+          # Check detect-secrets results
+          if [ -f "security-reports/secrets-scan.json" ]; then
+            secrets_count=$(jq '.results | length' security-reports/secrets-scan.json 2>/dev/null || echo "0")
+            if [ "$secrets_count" -gt "0" ]; then
+              echo "- ⚠️ **Detect-secrets**: $secrets_count potential secrets found" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ✅ **Detect-secrets**: No new secrets detected" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          # Check TruffleHog results
+          if [ -f "security-reports/trufflehog-results.json" ]; then
+            truffle_count=$(jq '. | length' security-reports/trufflehog-results.json 2>/dev/null || echo "0")
+            if [ "$truffle_count" -gt "0" ]; then
+              echo "- ⚠️ **TruffleHog**: $truffle_count potential secrets found" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ✅ **TruffleHog**: No secrets detected" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Upload secret scan results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: secret-scan-reports
+          path: security-reports/
+          retention-days: 30
+
+  # License compliance scanning
+  license-scan:
+    name: 'License Compliance'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run license scanner
+        run: |
+          mkdir -p security-reports
+
+          # Install pip-licenses
+          python -m pip install pip-licenses
+
+          # Generate license report
+          python -m pip_licenses \
+            --format=json \
+            --output-file=security-reports/licenses.json
+
+          python -m pip_licenses \
+            --format=plain \
+            --output-file=security-reports/licenses.txt
+
+          # Check for any GPL or AGPL licenses (may be problematic)
+          python -m pip_licenses \
+            --format=json | \
+            jq '.[] | select(.License | test("GPL|AGPL"; "i"))' \
+            > security-reports/copyleft-licenses.json || echo "[]" > security-reports/copyleft-licenses.json
+
+      - name: Analyze license compliance
+        run: |
+          echo "## License Compliance" >> $GITHUB_STEP_SUMMARY
+
+          total_deps=$(jq 'length' security-reports/licenses.json)
+          copyleft_deps=$(jq 'length' security-reports/copyleft-licenses.json)
+
+          echo "- **Total Dependencies**: $total_deps" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$copyleft_deps" -gt "0" ]; then
+            echo "- ⚠️ **Copyleft Licenses**: $copyleft_deps dependencies with GPL/AGPL licenses" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ✅ **Copyleft Licenses**: No GPL/AGPL licenses detected" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload license reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-compliance-reports
+          path: security-reports/
+          retention-days: 90  # Keep longer for compliance purposes
+
+  # Security gate - blocks PRs if security issues exceed threshold
+  security-gate:
+    name: 'Security Gate'
+    runs-on: ubuntu-latest
+    needs: [detect-context, sast-scan, dependency-scan, secret-scan]
+    if: always()
+    outputs:
+      should-block: ${{ steps.gate.outputs.should-block }}
+      security-status: ${{ steps.gate.outputs.security-status }}
+    steps:
+      - name: Evaluate security gate
+        id: gate
+        run: |
+          echo "Evaluating security gate for ${{ needs.detect-context.outputs.target-environment }} environment"
+
+          should_block="false"
+          security_status="passed"
+          total_blocking_issues=0
+
+          # Get blocking issues from SAST scan
+          sast_blocking=${{ needs.sast-scan.outputs.blocking-issues }}
+          total_blocking_issues=$((total_blocking_issues + sast_blocking))
+
+          # Check if we should block based on context and findings
+          if [ "${{ needs.detect-context.outputs.should-block }}" = "true" ] && [ "$total_blocking_issues" -gt "0" ]; then
+            should_block="true"
+            security_status="blocked"
+          elif [ "$total_blocking_issues" -gt "0" ]; then
+            security_status="warning"
+          fi
+
+          echo "should-block=$should_block" >> $GITHUB_OUTPUT
+          echo "security-status=$security_status" >> $GITHUB_OUTPUT
+
+          echo "Security gate decision: should_block=$should_block, status=$security_status, blocking_issues=$total_blocking_issues"
+
+      - name: Block PR if security threshold exceeded
+        if: steps.gate.outputs.should-block == 'true'
+        run: |
+          echo "🚫 Security gate BLOCKING this PR"
+          echo "Blocking issues found: ${{ needs.sast-scan.outputs.blocking-issues }}"
+          echo "Severity threshold: ${{ needs.detect-context.outputs.severity-threshold }}"
+          echo "Target environment: ${{ needs.detect-context.outputs.target-environment }}"
+          exit 1
+
+      - name: Add PR security comment
+        if: needs.detect-context.outputs.is-pull-request == 'true'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const securityStatus = '${{ steps.gate.outputs.security-status }}';
+            const blockingIssues = '${{ needs.sast-scan.outputs.blocking-issues }}';
+            const criticalIssues = '${{ needs.sast-scan.outputs.critical-issues }}';
+            const highIssues = '${{ needs.sast-scan.outputs.high-issues }}';
+            const mediumIssues = '${{ needs.sast-scan.outputs.medium-issues }}';
+            const threshold = '${{ needs.detect-context.outputs.severity-threshold }}';
+            const targetEnv = '${{ needs.detect-context.outputs.target-environment }}';
+
+            let emoji, title, message;
+
+            if (securityStatus === 'blocked') {
+              emoji = '🚫';
+              title = 'Security Gate: BLOCKED';
+              message = `This PR is **blocked** due to security issues above the ${threshold} severity threshold.`;
+            } else if (securityStatus === 'warning') {
+              emoji = '⚠️';
+              title = 'Security Gate: Warning';
+              message = `Security issues found but not blocking for ${targetEnv} environment.`;
+            } else {
+              emoji = '✅';
+              title = 'Security Gate: Passed';
+              message = 'No security issues found above the threshold.';
+            }
+
+            const body = emoji + ' **' + title + '**\n\n' +
+              message + '\n\n' +
+              '**Security Findings:**\n' +
+              '- 🔴 Critical: ' + criticalIssues + '\n' +
+              '- 🟠 High: ' + highIssues + '\n' +
+              '- 🟡 Medium: ' + mediumIssues + '\n' +
+              '- 🚫 Blocking: ' + blockingIssues + '\n\n' +
+              '**Configuration:**\n' +
+              '- Target Environment: ' + targetEnv + '\n' +
+              '- Severity Threshold: ' + threshold + '\n\n' +
+              (securityStatus === 'blocked' ? '**Action Required:** Please address the security findings before this PR can be merged.' : '') +
+              (securityStatus === 'warning' ? '**Recommendation:** Consider addressing these security findings.' : '');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # Security summary and reporting
+  security-summary:
+    name: 'Security Summary'
+    runs-on: ubuntu-latest
+    needs: [detect-context, sast-scan, dependency-scan, secret-scan, license-scan, security-gate]
+    if: always()
+    steps:
+      - name: Download all security reports
+        uses: actions/download-artifact@v3
+        with:
+          path: all-security-reports/
+
+      - name: Generate comprehensive security summary
+        run: |
+          echo "# Security Scanning Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Overall Status: ${{ needs.security-gate.outputs.security-status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ needs.detect-context.outputs.target-environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Severity Threshold**: ${{ needs.detect-context.outputs.severity-threshold }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Should Block**: ${{ needs.detect-context.outputs.should-block }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Scan Results" >> $GITHUB_STEP_SUMMARY
+
+          # SAST Results with detailed metrics
+          if [ "${{ needs.sast-scan.result }}" == "success" ]; then
+            echo "- ✅ **Static Analysis (SAST)**: Completed" >> $GITHUB_STEP_SUMMARY
+            echo "  - Critical: ${{ needs.sast-scan.outputs.critical-issues }}" >> $GITHUB_STEP_SUMMARY
+            echo "  - High: ${{ needs.sast-scan.outputs.high-issues }}" >> $GITHUB_STEP_SUMMARY
+            echo "  - Medium: ${{ needs.sast-scan.outputs.medium-issues }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ **Static Analysis (SAST)**: Issues found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Other scan results
+          if [ "${{ needs.dependency-scan.result }}" == "success" ]; then
+            echo "- ✅ **Dependency Scan**: Completed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⚠️ **Dependency Scan**: Vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.secret-scan.result }}" == "success" ]; then
+            echo "- ✅ **Secret Detection**: No issues" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⚠️ **Secret Detection**: Potential secrets found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.license-scan.result }}" == "success" ]; then
+            echo "- ✅ **License Compliance**: Compliant" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⚠️ **License Compliance**: Review required" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.security-gate.outputs.should-block }}" = "true" ]; then
+            echo "- ❌ **BLOCKED**: Address security findings above" >> $GITHUB_STEP_SUMMARY
+            echo "- Review detailed reports in artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "- Fix issues and re-run security scans" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ✅ **Approved**: Security gate passed" >> $GITHUB_STEP_SUMMARY
+            echo "- Review detailed reports in the Security tab" >> $GITHUB_STEP_SUMMARY
+            echo "- Consider addressing any warnings" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Create security issue if critical findings
+        if: |
+          needs.sast-scan.outputs.critical-issues > 0 ||
+          (needs.sast-scan.outputs.high-issues > 5 && needs.detect-context.outputs.target-environment == 'prod')
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const criticalIssues = '${{ needs.sast-scan.outputs.critical-issues }}';
+            const highIssues = '${{ needs.sast-scan.outputs.high-issues }}';
+            const targetEnv = '${{ needs.detect-context.outputs.target-environment }}';
+
+            const title = '🔴 Critical Security Issues Found (' + targetEnv + ' environment)';
+            const body = '## Security Alert\n\n' +
+              'Critical security issues have been detected in the ' + targetEnv + ' environment.\n\n' +
+              '**Findings:**\n' +
+              '- Critical Issues: ' + criticalIssues + '\n' +
+              '- High Issues: ' + highIssues + '\n\n' +
+              '**Action Required:**\n' +
+              '- [ ] Review security scan reports\n' +
+              '- [ ] Address critical vulnerabilities\n' +
+              '- [ ] Re-run security scans to verify fixes\n' +
+              '- [ ] Update security documentation if needed\n\n' +
+              '**Generated by:** Security Scan Workflow\n' +
+              '**Environment:** ' + targetEnv + '\n' +
+              '**Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}';
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['security', 'critical', 'automated']
+            });

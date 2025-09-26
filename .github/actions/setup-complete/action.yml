@@ -1,0 +1,111 @@
+name: 'Complete Setup'
+description: 'Complete setup including code checkout, Python, dbt, and environment configuration'
+
+inputs:
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.12'
+  aws-access-key-id:
+    description: 'AWS Access Key ID'
+    required: true
+  aws-secret-access-key:
+    description: 'AWS Secret Access Key'
+    required: true
+  environment:
+    description: 'Target environment (dev, staging, prod)'
+    required: false
+    default: 'dev'
+  install-python-dependencies:
+    description: 'Whether to install Python dependencies'
+    required: false
+    default: 'true'
+  install-dbt-packages:
+    description: 'Whether to install dbt packages'
+    required: false
+    default: 'true'
+  validate-dbt-config:
+    description: 'Whether to validate dbt configuration'
+    required: false
+    default: 'true'
+  cache-key-suffix:
+    description: 'Additional suffix for cache keys'
+    required: false
+    default: ''
+  manual-environment:
+    description: 'Manual environment override (for workflow_dispatch)'
+    required: false
+    default: ''
+
+outputs:
+  python-version:
+    description: 'The Python version that was installed'
+    value: ${{ steps.python-setup.outputs.python-version }}
+  environment:
+    description: 'Detected environment'
+    value: ${{ steps.env-config.outputs.environment }}
+  dbt-target:
+    description: 'dbt target profile'
+    value: ${{ steps.env-config.outputs.dbt-target }}
+  is-production:
+    description: 'Whether this is production environment'
+    value: ${{ steps.env-config.outputs.is-production }}
+  aws-region:
+    description: 'AWS region for this environment'
+    value: ${{ steps.env-config.outputs.aws-region }}
+  python-cache-hit:
+    description: 'Whether Python dependencies were restored from cache'
+    value: ${{ steps.python-setup.outputs.cache-hit }}
+  dbt-cache-hit:
+    description: 'Whether dbt packages were restored from cache'
+    value: ${{ steps.dbt-setup.outputs.packages-cache-hit }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Detect and configure environment
+      id: env-config
+      uses: ./.github/actions/detect-environment
+      with:
+        manual-environment: ${{ inputs.manual-environment }}
+
+    - name: Setup Python environment
+      id: python-setup
+      uses: ./.github/actions/setup-python
+      with:
+        python-version: ${{ inputs.python-version }}
+        install-dependencies: ${{ inputs.install-python-dependencies }}
+        cache-key-suffix: ${{ inputs.cache-key-suffix }}
+
+    - name: Setup dbt environment
+      id: dbt-setup
+      uses: ./.github/actions/setup-dbt
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ steps.env-config.outputs.aws-region }}
+        environment: ${{ steps.env-config.outputs.environment }}
+        install-packages: ${{ inputs.install-dbt-packages }}
+        validate-config: ${{ inputs.validate-dbt-config }}
+        cache-key-suffix: ${{ inputs.cache-key-suffix }}
+
+    - name: Generate setup summary
+      shell: bash
+      run: |
+        echo "## Complete Setup Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Environment" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment**: ${{ steps.env-config.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **dbt Target**: ${{ steps.env-config.outputs.dbt-target }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Is Production**: ${{ steps.env-config.outputs.is-production }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **AWS Region**: ${{ steps.env-config.outputs.aws-region }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Setup Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Python Version**: ${{ steps.python-setup.outputs.python-version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Python Cache Hit**: ${{ steps.python-setup.outputs.cache-hit == 'true' && '✅ Yes' || '❌ No' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **dbt Cache Hit**: ${{ steps.dbt-setup.outputs.packages-cache-hit == 'true' && '✅ Yes' || '❌ No' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Python Dependencies**: ${{ inputs.install-python-dependencies == 'true' && '✅ Installed' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **dbt Packages**: ${{ inputs.install-dbt-packages == 'true' && '✅ Installed' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
