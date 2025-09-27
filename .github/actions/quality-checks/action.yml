@@ -75,7 +75,7 @@ runs:
       shell: bash
       run: |
         set +e
-        ./.github/actions/quality-checks/scripts/run-security-checks.sh
+        bash ./.github/actions/quality-checks/scripts/run-security-checks.sh
         echo "exit_code=$?" >> $GITHUB_OUTPUT
         set -e
       continue-on-error: true
@@ -108,7 +108,7 @@ runs:
         MAKE_LINT_EXIT: ${{ steps.pre-commit.outputs.make_lint_exit }}
         DBT_COMPILE_EXIT: ${{ steps.dbt-analysis.outputs.compile_exit_code }}
       run: |
-        ./.github/actions/quality-checks/scripts/check-results.sh
+        bash ./.github/actions/quality-checks/scripts/check-results.sh
 
         # Load results from the script
         if [ -f "quality-reports/check-results.env" ]; then
@@ -146,7 +146,7 @@ runs:
         MAKE_LINT_EXIT: ${{ steps.pre-commit.outputs.make_lint_exit }}
         DBT_COMPILE_EXIT: ${{ steps.dbt-analysis.outputs.compile_exit_code }}
       run: |
-        ./.github/actions/quality-checks/scripts/generate-summary.sh
+        bash ./.github/actions/quality-checks/scripts/generate-summary.sh
 
     - name: Upload quality reports
       if: inputs.upload-reports == 'true' && always()
