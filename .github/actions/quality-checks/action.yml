@@ -75,35 +75,8 @@ runs:
       shell: bash
       run: |
         set +e
-
-        echo "Running comprehensive security analysis..."
-
-        # Install security tools if not available
-        python -m pip install bandit safety pip-audit
-
-        # Run bandit security check with multiple formats
-        echo "Running Bandit security scanner..."
-        python -m bandit -r scripts/ -f json -o quality-reports/security-report.json -ll || true
-        python -m bandit -r scripts/ -f txt -o quality-reports/security-report.txt || true
-
-        # Run safety check for known vulnerabilities
-        echo "Running Safety vulnerability scanner..."
-        python -m safety check --output json > quality-reports/safety-report.json || true
-        python -m safety check --output text > quality-reports/safety-report.txt || true
-
-        # Run pip-audit for additional vulnerability detection
-        echo "Running pip-audit..."
-        python -m pip install pip-audit
-        python -m pip_audit --format=json --output=quality-reports/pip-audit.json || true
-
-        # Run detect-secrets if available
-        if [ -f ".secrets.baseline" ]; then
-          echo "Running detect-secrets scanner..."
-          python -m pip install detect-secrets
-          detect-secrets scan --baseline .secrets.baseline --all-files > quality-reports/secrets-scan.json || true
-        fi
-
-        echo "exit_code=0" >> $GITHUB_OUTPUT
+        ./.github/actions/quality-checks/scripts/run-security-checks.sh
+        echo "exit_code=$?" >> $GITHUB_OUTPUT
         set -e
       continue-on-error: true
 
@@ -125,76 +98,25 @@ runs:
       continue-on-error: true
       env:
         ENVIRONMENT: ${{ inputs.environment }}
-        USE_AWS_SECRETS: 'true'
+        USE_AWS_SECRETS: 'true' #pragma: allowlist secret
 
     - name: Check results and categorize issues
       id: check-results
       shell: bash
+      env:
+        PRE_COMMIT_EXIT: ${{ steps.pre-commit.outputs.exit_code }}
+        MAKE_LINT_EXIT: ${{ steps.pre-commit.outputs.make_lint_exit }}
+        DBT_COMPILE_EXIT: ${{ steps.dbt-analysis.outputs.compile_exit_code }}
       run: |
-        has_errors="false"
-        has_warnings="false"
+        ./.github/actions/quality-checks/scripts/check-results.sh
 
-        # Check pre-commit results with detailed analysis
-        if [ "${{ steps.pre-commit.outputs.exit_code }}" != "0" ]; then
-          has_errors="true"
-          echo "❌ Pre-commit checks failed with critical errors"
-          echo "  - Pre-commit hooks exit: ${{ steps.pre-commit.outputs.pre_commit_exit }}"
-          echo "  - Make lint exit: ${{ steps.pre-commit.outputs.make_lint_exit }}"
-        else
-          echo "✅ All pre-commit checks passed"
+        # Load results from the script
+        if [ -f "quality-reports/check-results.env" ]; then
+          source quality-reports/check-results.env
         fi
-
-        # Check dbt compilation
-        if [ "${{ steps.dbt-analysis.outputs.compile_exit_code }}" != "0" ]; then
-          has_errors="true"
-          echo "❌ dbt compilation failed"
-        else
-          echo "✅ dbt compilation successful"
-        fi
-
-        # Enhanced security issue analysis
-        security_critical=0
-        security_high=0
-        security_medium=0
-
-        if [ -f "quality-reports/security-report.json" ]; then
-          # Parse bandit results
-          security_critical=$(grep -c '"issue_severity": "HIGH"\|"issue_confidence": "HIGH"' quality-reports/security-report.json 2>/dev/null || echo "0")
-          security_high=$(grep -c '"issue_severity": "MEDIUM"' quality-reports/security-report.json 2>/dev/null || echo "0")
-        fi
-
-        if [ -f "quality-reports/safety-report.json" ]; then
-          # Parse safety results
-          safety_vulns=$(jq 'length' quality-reports/safety-report.json 2>/dev/null || echo "0")
-          if [ "$safety_vulns" != "" ] && [ "$safety_vulns" -gt 0 ]; then
-            security_critical=$((security_critical + safety_vulns))
-          fi
-        fi
-
-        if [ -f "quality-reports/pip-audit.json" ]; then
-          # Parse pip-audit results
-          audit_vulns=$(jq '.vulnerabilities | length' quality-reports/pip-audit.json 2>/dev/null || echo "0")
-          if [ "$audit_vulns" != "" ] && [ "$audit_vulns" -gt 0 ]; then
-            security_high=$((security_high + audit_vulns))
-          fi
-        fi
-
-        # Classify security findings
-        if [ "$security_critical" -gt 0 ]; then
-          has_errors="true"
-          echo "❌ $security_critical critical security issues found"
-        elif [ "$security_high" -gt 0 ]; then
-          has_warnings="true"
-          echo "⚠️ $security_high high/medium security issues found"
-        else
-          echo "✅ No significant security issues detected"
-        fi
-
-        echo "has-errors=$has_errors" >> $GITHUB_OUTPUT
-        echo "has-warnings=$has_warnings" >> $GITHUB_OUTPUT
 
         # Fail if we have errors, or if fail-on-warnings is true and we have warnings
-        if [ "$has_errors" = "true" ] || ([ "${{ inputs.fail-on-warnings }}" = "true" ] && [ "$has_warnings" = "true" ]); then
+        if [ "$HAS_ERRORS" = "true" ] || ([ "${{ inputs.fail-on-warnings }}" = "true" ] && [ "$HAS_WARNINGS" = "true" ]); then
           exit 1
         fi
 
@@ -220,51 +142,11 @@ runs:
       shell: bash
       env:
         QUALITY_SCORE: ${{ steps.calculate-score.outputs.score }}
-        HAS_ERRORS: ${{ steps.check-results.outputs.has-errors }}
-        HAS_WARNINGS: ${{ steps.check-results.outputs.has-warnings }}
-        PRECOMMIT_EXIT: ${{ steps.pre-commit.outputs.exit_code }}
-        PRECOMMIT_HOOKS_EXIT: ${{ steps.pre-commit.outputs.pre_commit_exit }}
+        PRE_COMMIT_EXIT: ${{ steps.pre-commit.outputs.exit_code }}
         MAKE_LINT_EXIT: ${{ steps.pre-commit.outputs.make_lint_exit }}
         DBT_COMPILE_EXIT: ${{ steps.dbt-analysis.outputs.compile_exit_code }}
-        SECURITY_EXIT: ${{ steps.security.outputs.exit_code }}
       run: |
-        # Set display values based on exit codes and flags
-        ERRORS_STATUS=$([ "$HAS_ERRORS" = "true" ] && echo "❌ Yes" || echo "✅ No")
-        WARNINGS_STATUS=$([ "$HAS_WARNINGS" = "true" ] && echo "⚠️ Yes" || echo "✅ No")
-        PRECOMMIT_STATUS=$([ "$PRECOMMIT_EXIT" = "0" ] && echo "✅ Passed" || echo "❌ Failed")
-        PRECOMMIT_HOOKS_STATUS=$([ "$PRECOMMIT_HOOKS_EXIT" = "0" ] && echo "✅" || echo "❌")
-        MAKE_LINT_STATUS=$([ "$MAKE_LINT_EXIT" = "0" ] && echo "✅" || echo "❌")
-        DBT_COMPILE_STATUS=$([ "$DBT_COMPILE_EXIT" = "0" ] && echo "✅ Passed" || echo "❌ Failed")
-        SECURITY_STATUS=$([ "$SECURITY_EXIT" = "0" ] && echo "✅ Completed" || echo "⚠️ Issues found")
-
-        # Generate the summary file using printf to avoid YAML parsing issues
-        {
-          echo "# Code Quality Report"
-          echo ""
-          echo "## Summary"
-          echo "- **Quality Score**: ${QUALITY_SCORE}/100"
-          echo "- **Errors**: ${ERRORS_STATUS}"
-          echo "- **Warnings**: ${WARNINGS_STATUS}"
-          echo ""
-          echo "## Check Results"
-          echo "- **Pre-commit Hooks**: ${PRECOMMIT_STATUS}"
-          echo "  - Pre-commit: ${PRECOMMIT_HOOKS_STATUS}"
-          echo "  - Make lint: ${MAKE_LINT_STATUS}"
-          echo "- **dbt Compilation**: ${DBT_COMPILE_STATUS}"
-          echo "- **Security Analysis**: ${SECURITY_STATUS}"
-          echo "  - Multiple security tools executed (Bandit, Safety, pip-audit)"
-          echo ""
-          echo "## Detailed Reports"
-          echo "### Detailed Reports Available"
-          echo "- **lint-report.txt**: Pre-commit hooks and linting results"
-          echo "- **security-report.json/txt**: Bandit security analysis"
-          echo "- **safety-report.json/txt**: Known vulnerability scan"
-          echo "- **pip-audit.json**: Package vulnerability audit"
-          echo "- **dbt-compile.txt**: dbt compilation output"
-          echo "- **dbt-docs.txt**: Documentation generation log"
-          echo ""
-          echo "Check the uploaded artifacts for complete analysis details."
-        } > quality-reports/summary.md
+        ./.github/actions/quality-checks/scripts/generate-summary.sh
 
     - name: Upload quality reports
       if: inputs.upload-reports == 'true' && always()
