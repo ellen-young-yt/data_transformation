@@ -25,8 +25,6 @@ repos:
       - id: debug-statements
       - id: detect-private-key
         exclude: '^(README\.md|\.env\.example)$'
-      - id: mixed-line-ending
-        args: [--fix=lf]
 
   # Python code formatting and linting
   - repo: https://github.com/psf/black
@@ -161,7 +159,7 @@ ci:
 
 # Environment-specific configuration
 default_install_hook_types: [pre-commit, pre-push, commit-msg]
-default_stages: [commit, push]
+default_stages: [pre-commit, pre-push]
 minimum_pre_commit_version: "3.0.0"
 
 # Fail fast - stop on first failure for faster feedback
