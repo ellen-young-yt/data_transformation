@@ -59,7 +59,7 @@ runs:
 
         # Use the worse of the two exit codes
         exit_code=$pre_commit_exit
-        if [ $make_exit -ne 0 ]; then
+        if [ "$make_exit" -ne "0" ]; then
           exit_code=$make_exit
         fi
 
@@ -88,12 +88,13 @@ runs:
 
         # Run safety check for known vulnerabilities
         echo "Running Safety vulnerability scanner..."
-        python -m safety check --json --output quality-reports/safety-report.json || true
-        python -m safety check --output quality-reports/safety-report.txt || true
+        python -m safety check --output json > quality-reports/safety-report.json || true
+        python -m safety check --output text > quality-reports/safety-report.txt || true
 
         # Run pip-audit for additional vulnerability detection
         echo "Running pip-audit..."
-        python -m pip-audit --format=json --output=quality-reports/pip-audit.json || true
+        python -m pip install pip-audit
+        python -m pip_audit --format=json --output=quality-reports/pip-audit.json || true
 
         # Run detect-secrets if available
         if [ -f ".secrets.baseline" ]; then
@@ -165,7 +166,7 @@ runs:
         if [ -f "quality-reports/safety-report.json" ]; then
           # Parse safety results
           safety_vulns=$(jq 'length' quality-reports/safety-report.json 2>/dev/null || echo "0")
-          if [ "$safety_vulns" -gt "0" ]; then
+          if [ "$safety_vulns" != "" ] && [ "$safety_vulns" -gt 0 ]; then
             security_critical=$((security_critical + safety_vulns))
           fi
         fi
@@ -173,16 +174,16 @@ runs:
         if [ -f "quality-reports/pip-audit.json" ]; then
           # Parse pip-audit results
           audit_vulns=$(jq '.vulnerabilities | length' quality-reports/pip-audit.json 2>/dev/null || echo "0")
-          if [ "$audit_vulns" -gt "0" ]; then
+          if [ "$audit_vulns" != "" ] && [ "$audit_vulns" -gt 0 ]; then
             security_high=$((security_high + audit_vulns))
           fi
         fi
 
         # Classify security findings
-        if [ "$security_critical" -gt "0" ]; then
+        if [ "$security_critical" -gt 0 ]; then
           has_errors="true"
           echo "❌ $security_critical critical security issues found"
-        elif [ "$security_high" -gt "0" ]; then
+        elif [ "$security_high" -gt 0 ]; then
           has_warnings="true"
           echo "⚠️ $security_high high/medium security issues found"
         else
@@ -215,6 +216,7 @@ runs:
         echo "Quality Score: $score/100"
 
     - name: Generate quality summary
+      if: always()
       shell: bash
       env:
         QUALITY_SCORE: ${{ steps.calculate-score.outputs.score }}
@@ -276,7 +278,12 @@ runs:
       if: always()
       shell: bash
       run: |
-        cat quality-reports/summary.md >> $GITHUB_STEP_SUMMARY
+        if [ -f "quality-reports/summary.md" ]; then
+          cat quality-reports/summary.md >> $GITHUB_STEP_SUMMARY
+        else
+          echo "# Quality Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Quality report generation failed or incomplete." >> $GITHUB_STEP_SUMMARY
+        fi
 
         # Add CI-specific information
         echo "" >> $GITHUB_STEP_SUMMARY
