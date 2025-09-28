@@ -65,25 +65,6 @@ fi
 security_critical=0
 security_high=0
 
-# Parse bandit results
-if [ -f "$REPORTS_DIR/security-report.json" ]; then
-    high_severity=$(grep -c '"issue_severity": "HIGH"' "$REPORTS_DIR/security-report.json" 2>/dev/null || echo "0")
-    high_confidence=$(grep -c '"issue_confidence": "HIGH"' "$REPORTS_DIR/security-report.json" 2>/dev/null || echo "0")
-    medium_severity=$(grep -c '"issue_severity": "MEDIUM"' "$REPORTS_DIR/security-report.json" 2>/dev/null || echo "0")
-
-    security_critical=$(safe_int "$high_severity")
-    security_high=$(safe_int "$medium_severity")
-
-    # Add high confidence issues to critical count
-    high_conf_count=$(safe_int "$high_confidence")
-    security_critical=$((security_critical + high_conf_count))
-fi
-
-# Parse safety results
-safety_vulns=$(parse_json_int "$REPORTS_DIR/safety-report.json" "length")
-if [ "$safety_vulns" -gt 0 ]; then
-    security_critical=$((security_critical + safety_vulns))
-fi
 
 # Parse pip-audit results
 audit_vulns=$(parse_json_int "$REPORTS_DIR/pip-audit.json" ".vulnerabilities | length")

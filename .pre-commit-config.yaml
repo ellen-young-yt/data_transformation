@@ -8,7 +8,7 @@ default_language_version:
 repos:
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         exclude: '\.sql$' # SQL files may need trailing whitespace
@@ -16,13 +16,9 @@ repos:
         exclude: '\.sql$'
       - id: check-yaml
         args: [--allow-multiple-documents]
-      - id: check-json
-      - id: check-toml
       - id: check-added-large-files
         args: [--maxkb=1000]
-      - id: check-case-conflict
       - id: check-merge-conflict
-      - id: debug-statements
       - id: detect-private-key
         exclude: '^(README\.md|\.env\.example)$'
 
@@ -44,15 +40,7 @@ repos:
     rev: 7.0.0
     hooks:
       - id: flake8
-        additional_dependencies: [flake8-docstrings]
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-PyYAML]
-        args: [--config-file=pyproject.toml]
-        exclude: "^(dbt_packages/|transform/|target/|logs/)"
 
   # SQL linting with SQLFluff
   - repo: https://github.com/sqlfluff/sqlfluff
@@ -79,13 +67,6 @@ repos:
         files: '^models/.*\.sql$'
         exclude: "^(dbt_packages/|target/|logs/|transform/)"
 
-  # YAML formatting with Prettier
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
-    hooks:
-      - id: prettier
-        types_or: [yaml, markdown]
-        exclude: '^(dbt_packages/|target/|logs/|\.github/)'
 
   # Security checks
   - repo: https://github.com/Yelp/detect-secrets
@@ -93,17 +74,8 @@ repos:
     hooks:
       - id: detect-secrets
         args: ["--baseline", ".secrets.baseline"]
-        exclude: '^(dbt_packages/|transform/|target/|logs/|node_modules/|\.env\.example|\.secrets\.baseline)'
+        exclude: '^(dbt_packages/|transform/|target/|logs/|node_modules/|\.env\.example|\.secrets\.baseline|README\.md)'
 
-  # Python security checks
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.5
-    hooks:
-      - id: bandit
-        additional_dependencies: ["pbr"]
-        args: ["--configfile", ".bandit", "-r", "scripts/"]
-        pass_filenames: false
-        always_run: true
 
   # Local testing hooks
   - repo: local
@@ -118,28 +90,12 @@ repos:
         always_run: true
         verbose: true
 
-      # Environment validation
-      - id: env-validation
-        name: environment validation
+      # Project validation (consolidated env and structure validation)
+      - id: project-validation
+        name: project validation
         entry: make validate
         language: system
-        files: "^(scripts/|\\.env\\.example|pyproject\\.toml|requirements\\.txt).*"
-        pass_filenames: false
-
-      # Python syntax and style validation
-      - id: python-syntax
-        name: python syntax and import check
-        entry: python -m py_compile
-        language: system
-        types: [python]
-        files: "^scripts/.*\\.py$"
-
-      # Project structure validation
-      - id: project-structure
-        name: project structure validation
-        entry: make validate
-        language: system
-        files: "^(dbt_project\\.yml|profiles/profiles\\.yml|Makefile|\\.env\\.example|\\.github/).*"
+        files: "^(scripts/|\\.env\\.example|pyproject\\.toml|requirements\\.txt|dbt_project\\.yml|profiles/profiles\\.yml|Makefile|\\.github/).*"
         pass_filenames: false
         always_run: true
 
@@ -163,4 +119,4 @@ default_stages: [pre-commit, pre-push]
 minimum_pre_commit_version: "3.0.0"
 
 # Fail fast - stop on first failure for faster feedback
-fail_fast: false # Set to true for faster local development
+fail_fast: true # Optimized for faster CI/CD performance

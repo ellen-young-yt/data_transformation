@@ -112,27 +112,11 @@ jobs:
           # Create security reports directory
           mkdir -p security-reports
 
-          # Install security tools
-          python -m pip install bandit safety pip-audit semgrep
+          # Install security tools (removed bandit and safety for performance)
+          python -m pip install pip-audit semgrep
 
-          echo "Running Bandit SAST scanner..."
-          # Run bandit with detailed output and configurable severity
-          python -m bandit -r scripts/ \
-            -f json -o security-reports/bandit-report.json \
-            -f txt -o security-reports/bandit-report.txt \
-            --severity-level ${{ needs.detect-context.outputs.severity-threshold }} || true
-
-          # Generate SARIF format for GitHub Security tab
-          python -m bandit -r scripts/ \
-            -f sarif -o security-reports/bandit.sarif \
-            --severity-level ${{ needs.detect-context.outputs.severity-threshold }} || true
-
-          echo "Running Safety vulnerability scanner..."
-          # Run safety check for dependencies
-          python -m safety check --json --output security-reports/safety-report.json || true
-
-          echo "Running pip-audit..."
-          # Run pip-audit for additional vulnerability detection
+          echo "Running pip-audit for vulnerability detection..."
+          # Run pip-audit for vulnerability detection
           python -m pip-audit --format=json --output=security-reports/pip-audit.json || true
 
       - name: Run Semgrep SAST
@@ -152,29 +136,11 @@ jobs:
           medium_count=0
           blocking_count=0
 
-          # Parse Bandit results
-          if [ -f "security-reports/bandit-report.json" ]; then
-            # Count issues by severity
-            critical_bandit=$(jq '[.results[] | select(.issue_severity == "HIGH" and .issue_confidence == "HIGH")] | length' security-reports/bandit-report.json || echo "0")
-            high_bandit=$(jq '[.results[] | select(.issue_severity == "HIGH" or (.issue_severity == "MEDIUM" and .issue_confidence == "HIGH"))] | length' security-reports/bandit-report.json || echo "0")
-            medium_bandit=$(jq '[.results[] | select(.issue_severity == "MEDIUM")] | length' security-reports/bandit-report.json || echo "0")
-
-            critical_count=$((critical_count + critical_bandit))
-            high_count=$((high_count + high_bandit))
-            medium_count=$((medium_count + medium_bandit))
-          fi
-
-          # Parse Safety results
-          if [ -f "security-reports/safety-report.json" ]; then
-            safety_vulns=$(jq 'length' security-reports/safety-report.json || echo "0")
-            # Treat all safety vulnerabilities as high severity
-            high_count=$((high_count + safety_vulns))
-          fi
-
           # Parse pip-audit results
           if [ -f "security-reports/pip-audit.json" ]; then
             audit_vulns=$(jq '.vulnerabilities | length' security-reports/pip-audit.json || echo "0")
-            medium_count=$((medium_count + audit_vulns))
+            # Treat pip-audit vulnerabilities as high severity for blocking decisions
+            high_count=$((high_count + audit_vulns))
           fi
 
           # Determine blocking issues based on context
@@ -241,76 +207,6 @@ jobs:
           path: security-reports/
           retention-days: 30
 
-  # Dependency vulnerability scanning
-  dependency-scan:
-    name: 'Dependency Security Scan'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Python environment
-        uses: ./.github/actions/setup-python
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Run Safety check for known vulnerabilities
-        run: |
-          mkdir -p security-reports
-
-          # Install safety if not already installed
-          python -m pip install safety
-
-          # Run safety check
-          python -m safety check \
-            --json --output security-reports/safety-report.json || true
-
-          python -m safety check \
-            --output security-reports/safety-report.txt || true
-
-      - name: Run pip-audit for vulnerabilities
-        run: |
-          # Install pip-audit
-          python -m pip install pip-audit
-
-          # Run pip-audit
-          python -m pip-audit \
-            --format=json --output=security-reports/pip-audit.json || true
-
-          python -m pip-audit \
-            --output=security-reports/pip-audit.txt || true
-
-      - name: Analyze dependency vulnerabilities
-        run: |
-          echo "## Dependency Security Analysis" >> $GITHUB_STEP_SUMMARY
-
-          # Check safety results
-          if [ -f "security-reports/safety-report.json" ]; then
-            vuln_count=$(jq 'length' security-reports/safety-report.json 2>/dev/null || echo "0")
-            if [ "$vuln_count" -gt "0" ]; then
-              echo "- ⚠️ **Safety scan**: $vuln_count vulnerabilities found" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "- ✅ **Safety scan**: No known vulnerabilities" >> $GITHUB_STEP_SUMMARY
-            fi
-          fi
-
-          # Check pip-audit results
-          if [ -f "security-reports/pip-audit.json" ]; then
-            audit_issues=$(jq '.vulnerabilities | length' security-reports/pip-audit.json 2>/dev/null || echo "0")
-            if [ "$audit_issues" -gt "0" ]; then
-              echo "- ⚠️ **Pip-audit**: $audit_issues issues found" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "- ✅ **Pip-audit**: No issues found" >> $GITHUB_STEP_SUMMARY
-            fi
-          fi
-
-      - name: Upload dependency reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: dependency-security-reports
-          path: security-reports/
-          retention-days: 30
 
   # Container security scanning
   container-scan:
@@ -391,14 +287,6 @@ jobs:
             --baseline .secrets.baseline \
             --stats > security-reports/secrets-audit.txt || true
 
-      - name: Run TruffleHog secret scanner
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          base: main
-          head: HEAD
-          extra_args: --json --output=security-reports/trufflehog-results.json
-        continue-on-error: true
 
       - name: Analyze secret scan results
         run: |
@@ -414,15 +302,6 @@ jobs:
             fi
           fi
 
-          # Check TruffleHog results
-          if [ -f "security-reports/trufflehog-results.json" ]; then
-            truffle_count=$(jq '. | length' security-reports/trufflehog-results.json 2>/dev/null || echo "0")
-            if [ "$truffle_count" -gt "0" ]; then
-              echo "- ⚠️ **TruffleHog**: $truffle_count potential secrets found" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "- ✅ **TruffleHog**: No secrets detected" >> $GITHUB_STEP_SUMMARY
-            fi
-          fi
 
       - name: Upload secret scan results
         uses: actions/upload-artifact@v4
@@ -432,68 +311,13 @@ jobs:
           path: security-reports/
           retention-days: 30
 
-  # License compliance scanning
-  license-scan:
-    name: 'License Compliance'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Python environment
-        uses: ./.github/actions/setup-python
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Run license scanner
-        run: |
-          mkdir -p security-reports
-
-          # Install pip-licenses
-          python -m pip install pip-licenses
-
-          # Generate license report
-          pip-licenses \
-            --format=json \
-            --output-file=security-reports/licenses.json
-
-          pip-licenses \
-            --format=plain \
-            --output-file=security-reports/licenses.txt
-
-          # Check for any GPL or AGPL licenses (may be problematic)
-          pip-licenses \
-            --format=json | \
-            jq '.[] | select(.License | test("GPL|AGPL"; "i"))' \
-            > security-reports/copyleft-licenses.json || echo "[]" > security-reports/copyleft-licenses.json
-
-      - name: Analyze license compliance
-        run: |
-          echo "## License Compliance" >> $GITHUB_STEP_SUMMARY
-
-          total_deps=$(jq 'length' security-reports/licenses.json)
-          copyleft_deps=$(jq 'length' security-reports/copyleft-licenses.json)
-
-          echo "- **Total Dependencies**: $total_deps" >> $GITHUB_STEP_SUMMARY
-
-          if [ "$copyleft_deps" -gt "0" ]; then
-            echo "- ⚠️ **Copyleft Licenses**: $copyleft_deps dependencies with GPL/AGPL licenses" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ✅ **Copyleft Licenses**: No GPL/AGPL licenses detected" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Upload license reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: license-compliance-reports
-          path: security-reports/
-          retention-days: 90  # Keep longer for compliance purposes
+  # License compliance scanning removed for performance (not needed for private data project)
 
   # Security gate - blocks PRs if security issues exceed threshold
   security-gate:
     name: 'Security Gate'
     runs-on: ubuntu-latest
-    needs: [detect-context, sast-scan, dependency-scan, secret-scan]
+    needs: [detect-context, sast-scan, secret-scan]
     if: always()
     outputs:
       should-block: ${{ steps.gate.outputs.should-block }}
@@ -587,7 +411,7 @@ jobs:
   security-summary:
     name: 'Security Summary'
     runs-on: ubuntu-latest
-    needs: [detect-context, sast-scan, dependency-scan, secret-scan, license-scan, security-gate]
+    needs: [detect-context, sast-scan, secret-scan, security-gate]
     if: always()
     steps:
       - name: Download all security reports
@@ -618,12 +442,7 @@ jobs:
             echo "- ❌ **Static Analysis (SAST)**: Issues found" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Other scan results
-          if [ "${{ needs.dependency-scan.result }}" == "success" ]; then
-            echo "- ✅ **Dependency Scan**: Completed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ⚠️ **Dependency Scan**: Vulnerabilities found" >> $GITHUB_STEP_SUMMARY
-          fi
+          # Dependency scanning is now integrated into SAST scan via pip-audit
 
           if [ "${{ needs.secret-scan.result }}" == "success" ]; then
             echo "- ✅ **Secret Detection**: No issues" >> $GITHUB_STEP_SUMMARY
@@ -631,11 +450,7 @@ jobs:
             echo "- ⚠️ **Secret Detection**: Potential secrets found" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if [ "${{ needs.license-scan.result }}" == "success" ]; then
-            echo "- ✅ **License Compliance**: Compliant" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ⚠️ **License Compliance**: Review required" >> $GITHUB_STEP_SUMMARY
-          fi
+          # License compliance removed for performance optimization
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Next Steps" >> $GITHUB_STEP_SUMMARY

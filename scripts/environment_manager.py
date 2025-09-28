@@ -704,6 +704,43 @@ class EnvironmentManager:
         for key, value in config.items():
             log_info(f"  {key}: {value}")
 
+    def _remove_directory_with_retry(
+        self, dir_path: Path, max_retries: int = 3
+    ) -> bool:
+        """
+        Safely remove directory with retry logic for locked files (cross-platform).
+
+        Args:
+            dir_path: Path to directory to remove
+            max_retries: Maximum number of retry attempts
+
+        Returns:
+            True if successfully removed or doesn't exist, False if failed
+        """
+        import time
+
+        if not dir_path.exists():
+            return True  # Already gone
+
+        for attempt in range(max_retries):
+            try:
+                shutil.rmtree(dir_path)
+                return True
+            except PermissionError:
+                if attempt < max_retries - 1:
+                    wait_time = attempt + 1  # Exponential backoff: 1s, 2s, 3s
+                    log_info(f"Directory locked, retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    log_warning(
+                        f"Could not remove {dir_path} after {max_retries} attempts"
+                    )
+                    return False
+            except Exception as e:
+                log_error(f"Failed to remove {dir_path}: {e}")
+                return False
+        return False
+
     def install_dependencies(self) -> int:
         """
         Install Python dependencies with platform-specific handling.
@@ -732,18 +769,7 @@ class EnvironmentManager:
                     log_info(
                         "Virtual environment exists but is incomplete, removing..."
                     )
-                    # Force remove on Windows
-                    if self._platform == Platform.WINDOWS:
-                        subprocess.run(
-                            ["taskkill", "/F", "/IM", "python.exe"], capture_output=True
-                        )
-                        subprocess.run(
-                            ["rmdir", "/S", "/Q", str(venv_dir)],
-                            capture_output=True,
-                            shell=False,
-                        )
-                    else:
-                        shutil.rmtree(venv_dir)
+                    self._remove_directory_with_retry(venv_dir)
 
                 python_exe = shutil.which("python") or sys.executable
                 subprocess.run(
@@ -797,7 +823,6 @@ class EnvironmentManager:
         Returns:
             Exit code
         """
-        import shutil
         import subprocess
 
         log_step("Cleaning environment...")
@@ -829,25 +854,10 @@ class EnvironmentManager:
         # Remove virtual environment
         venv_dir = self.project_root / "transform"
         if venv_dir.exists():
-            try:
-                # Force remove on Windows
-                if self._platform == Platform.WINDOWS:
-                    subprocess.run(
-                        ["taskkill", "/F", "/IM", "python.exe"], capture_output=True
-                    )
-                    result = subprocess.run(
-                        ["rmdir", "/S", "/Q", str(venv_dir)],
-                        capture_output=True,
-                        shell=False,
-                    )
-                    if result.returncode != 0:
-                        # Fallback to shutil if rmdir fails
-                        shutil.rmtree(venv_dir)
-                else:
-                    shutil.rmtree(venv_dir)
+            if self._remove_directory_with_retry(venv_dir):
                 log_success("Virtual environment removed")
-            except Exception as e:
-                log_warning(f"Could not remove virtual environment: {e}")
+            else:
+                log_warning("Could not remove virtual environment after retries")
                 log_info(
                     "You may need to close any Python processes and run 'make clean' again"
                 )
