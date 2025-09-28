@@ -33,6 +33,17 @@ runs:
       shell: bash
       run: mkdir -p quality-reports
 
+    - name: Setup environment for dbt operations
+      id: setup-env
+      shell: bash
+      run: |
+        # Install dbt dependencies first to enable pre-commit dbt hooks
+        python -m scripts.dbt_commands deps ${{ inputs.environment }}
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+        USE_AWS_SECRETS: 'true' #pragma: allowlist secret
+      continue-on-error: true
+
     - name: Install and run pre-commit hooks
       id: pre-commit
       shell: bash
@@ -69,6 +80,9 @@ runs:
 
         set -e
       continue-on-error: true
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+        USE_AWS_SECRETS: 'true' #pragma: allowlist secret
 
     - name: Run enhanced security checks
       id: security
