@@ -183,6 +183,8 @@ jobs:
 
       - name: Run dbt deployment
         id: deploy
+        env:
+          USE_AWS_SECRETS: true
         run: |
           echo "Deploying to ${{ needs.detect-environment.outputs.environment }} environment..."
 
