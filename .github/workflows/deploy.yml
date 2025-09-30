@@ -189,7 +189,7 @@ jobs:
           make build ENV=${{ needs.detect-environment.outputs.target }}
 
           # Generate documentation
-          make docs ENV=${{ needs.detect-environment.outputs.target }}
+          make docs
 
           echo "deployment-url=https://docs.example.com/${{ needs.detect-environment.outputs.environment }}" >> $GITHUB_OUTPUT
 

@@ -36,7 +36,7 @@ help: ## Show this help message
 	@echo '                            MODE=local: Run using local dbt installation (default)'
 	@echo '                            MODE=docker: Build and run in Docker container (isolated environment)'
 	@echo '  clean           Clean dbt artifacts and rebuild venv'
-	@echo '  docs            Generate and serve dbt documentation'
+	@echo '  docs [SERVE=true] Generate dbt documentation (add SERVE=true to also serve)'
 	@echo '  docker-build    Build Docker image'
 
 install: ## Install Python dependencies
@@ -78,9 +78,11 @@ test: ## Run both unit and integration tests (usage: make test [ENV=dev|test|pro
 clean: ## Clean dbt artifacts and rebuild virtual environment
 	python -m scripts.environment_manager clean
 
-docs: ## Generate and serve dbt documentation
-	python -m scripts.dbt_commands docs-generate
-	python -m scripts.dbt_commands docs-serve
+docs: ## Generate dbt documentation (usage: make docs [SERVE=true])
+	@python -m scripts.dbt_commands docs-generate
+	@if [ "$(SERVE)" = "true" ]; then \
+		python -m scripts.dbt_commands docs-serve; \
+	fi
 
 docker-build: ## Build Docker image
 	python -m scripts.docker_manager build
