@@ -140,12 +140,10 @@ jobs:
             --build-arg VCS_REF=${{ github.sha }} \
             --build-arg VERSION=${{ github.ref_name }} \
             -t $ECR_REPOSITORY_URL:$IMAGE_TAG \
-            -t $ECR_REPOSITORY_URL:$ENVIRONMENT-latest \
             .
 
-          # Push images
+          # Push image
           docker push $ECR_REPOSITORY_URL:$IMAGE_TAG
-          docker push $ECR_REPOSITORY_URL:$ENVIRONMENT-latest
 
           # Output image info
           echo "image-uri=$ECR_REPOSITORY_URL:$IMAGE_TAG" >> $GITHUB_OUTPUT
@@ -153,7 +151,6 @@ jobs:
 
           echo "## Docker Image Built" >> $GITHUB_STEP_SUMMARY
           echo "- **Image URI**: $ECR_REPOSITORY_URL:$IMAGE_TAG" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment Tag**: $ECR_REPOSITORY_URL:$ENVIRONMENT-latest" >> $GITHUB_STEP_SUMMARY
 
   # Deploy and run dbt models
   deploy:
