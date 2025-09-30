@@ -647,7 +647,7 @@ class EnvironmentManager:
             "skip-integration-tests": str(skip_integration_tests).lower(),
             "aws-region": "us-east-2",
             "aws-account-id": "891612547191",
-            "ecr-repository": "data-transformation",
+            "ecr-repository": f"ellen-young-yt-{self.environment.value}-dbt",
         }
 
         # Write to GitHub Actions outputs
