@@ -79,10 +79,10 @@ clean: ## Clean dbt artifacts and rebuild virtual environment
 	python -m scripts.environment_manager clean
 
 docs: ## Generate dbt documentation (usage: make docs [SERVE=true])
-	@python -m scripts.dbt_commands docs-generate
-	@if [ "$(SERVE)" = "true" ]; then \
-		python -m scripts.dbt_commands docs-serve; \
-	fi
+	python -m scripts.dbt_commands docs-generate
+ifeq ($(SERVE),true)
+	python -m scripts.dbt_commands docs-serve
+endif
 
 docker-build: ## Build Docker image
 	python -m scripts.docker_manager build
