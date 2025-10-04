@@ -179,7 +179,7 @@ class EnvironmentManager:
         if self.environment == Environment.DEV:
             return "dev"
         elif self.environment == Environment.STAGING:
-            return "test"  # staging uses test target in current setup
+            return "staging"
         elif self.environment == Environment.PROD:
             return "prod"
         else:

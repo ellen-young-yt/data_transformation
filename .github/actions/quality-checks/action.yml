@@ -38,7 +38,7 @@ runs:
       shell: bash
       run: |
         # Install dbt dependencies first to enable pre-commit dbt hooks
-        python -m scripts.dbt_commands deps ${{ inputs.environment }}
+        python -m scripts.dbt_commands deps
       env:
         ENVIRONMENT: ${{ inputs.environment }}
         USE_AWS_SECRETS: 'true' #pragma: allowlist secret

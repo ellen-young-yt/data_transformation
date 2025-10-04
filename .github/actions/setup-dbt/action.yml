@@ -58,7 +58,7 @@ runs:
             echo "target=prod" >> $GITHUB_OUTPUT
             ;;
           "staging")
-            echo "target=test" >> $GITHUB_OUTPUT
+            echo "target=staging" >> $GITHUB_OUTPUT
             ;;
           *)
             echo "target=dev" >> $GITHUB_OUTPUT
