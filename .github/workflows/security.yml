@@ -319,6 +319,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [detect-context, sast-scan, secret-scan]
     if: always()
+    permissions:
+      pull-requests: write  # Required to comment on PRs
+      issues: write         # Required to comment on PRs (PRs are issues)
     outputs:
       should-block: ${{ steps.gate.outputs.should-block }}
       security-status: ${{ steps.gate.outputs.security-status }}
