@@ -8,14 +8,23 @@ This module provides centralized environment management functionality that:
 - Provides unified access to environment variables and settings
 """
 
+import gc
+import json
 import os
 import platform
 import shutil
+import stat
 import subprocess
 import sys
+import time
 from enum import Enum, auto
 from pathlib import Path
 from typing import Dict, Optional, Union
+
+try:
+    import boto3
+except ImportError:
+    boto3 = None  # type: ignore
 
 from .utils import log_error, log_info, log_step, log_success, log_warning
 
@@ -457,9 +466,8 @@ class EnvironmentManager:
             return False
 
         try:
-            import json
-
-            import boto3
+            if boto3 is None:
+                raise ImportError("boto3 not available")
 
             secrets_config = self.get_secrets_config()
             secret_name = secrets_config["secret_name"]
@@ -710,6 +718,8 @@ class EnvironmentManager:
         """
         Safely remove directory with retry logic for locked files (cross-platform).
 
+        Uses Python 3.12+ onexc handler to deal with readonly files on Windows.
+
         Args:
             dir_path: Path to directory to remove
             max_retries: Maximum number of retry attempts
@@ -717,18 +727,24 @@ class EnvironmentManager:
         Returns:
             True if successfully removed or doesn't exist, False if failed
         """
-        import time
-
         if not dir_path.exists():
             return True  # Already gone
 
+        def handle_remove_readonly(func, path, exc):
+            """Handle readonly files on Windows."""
+            try:
+                os.chmod(path, stat.S_IWRITE)
+                func(path)
+            except Exception:
+                pass  # If chmod fails, let the retry handle it
+
         for attempt in range(max_retries):
             try:
-                shutil.rmtree(dir_path)
+                shutil.rmtree(dir_path, onexc=handle_remove_readonly)
                 return True
-            except PermissionError:
+            except (PermissionError, OSError):
                 if attempt < max_retries - 1:
-                    wait_time = attempt + 1  # Exponential backoff: 1s, 2s, 3s
+                    wait_time = 2**attempt  # Exponential backoff: 1s, 2s, 4s
                     log_info(f"Directory locked, retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
@@ -748,8 +764,6 @@ class EnvironmentManager:
         Returns:
             Exit code
         """
-        import subprocess
-
         log_step("Installing Python dependencies...")
 
         # Create virtual environment
@@ -823,8 +837,6 @@ class EnvironmentManager:
         Returns:
             Exit code
         """
-        import subprocess
-
         log_step("Cleaning environment...")
 
         # Clean dbt artifacts - don't fail the whole process if this has issues
@@ -850,6 +862,9 @@ class EnvironmentManager:
                 log_info("dbt not found, skipping artifact cleanup")
         except Exception as e:
             log_info(f"Skipping dbt clean: {e}")
+
+        # Force garbage collection to release any file handles from dbt subprocess
+        gc.collect()
 
         # Remove virtual environment
         venv_dir = self.project_root / "transform"

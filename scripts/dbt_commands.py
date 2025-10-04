@@ -6,6 +6,7 @@ and complex operations for dbt commands called from Make.
 """
 
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -213,13 +214,11 @@ class DBTCommandRunner:
 
     def _clean_packages(self) -> None:
         """Clean the dbt_packages directory."""
-        import shutil as sh
-
         packages_dir = self.env_manager.project_root / "dbt_packages"
 
         if packages_dir.exists():
             try:
-                sh.rmtree(packages_dir)
+                shutil.rmtree(packages_dir)
                 log_info("Removed existing dbt_packages directory")
             except Exception as e:
                 log_warning(f"Could not remove dbt_packages directory: {e}")
@@ -382,8 +381,6 @@ class DBTCommandRunner:
         log_step("Running Elementary data tests...")
 
         # Skip Elementary on Windows due to path length limitations
-        import platform
-
         if platform.system() == "Windows":
             log_info("Elementary Data Reliability platform detected: Windows")
             log_info("Status: Skipping due to Windows path length limitations")

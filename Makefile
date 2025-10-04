@@ -51,19 +51,19 @@ lint: ## Run linting
 lint-fix: ## Fix linting issues
 	python -m scripts.linting all --fix
 
-run: deps ## Run dbt models (usage: make run [ENV=dev|test|prod] [MODE=local|docker], defaults to dev/local)
+run: ## Run dbt models (usage: make run [ENV=dev|test|prod] [MODE=local|docker], defaults to dev/local)
 	@python -m scripts.dbt_commands run $(or $(ENV),dev) $(or $(MODE),local)
 
-compile: deps ## Compile dbt models to SQL (usage: make compile [ENV=dev|test|prod] [MODE=local|docker])
+compile: ## Compile dbt models to SQL (usage: make compile [ENV=dev|test|prod] [MODE=local|docker])
 	@python -m scripts.dbt_commands compile $(or $(ENV),dev) $(or $(MODE),local)
 
-build: deps ## Run dbt build (models + tests) (usage: make build [ENV=dev|test|prod] [MODE=local|docker])
+build: ## Run dbt build (models + tests) (usage: make build [ENV=dev|test|prod] [MODE=local|docker])
 	@python -m scripts.dbt_commands build $(or $(ENV),dev) $(or $(MODE),local)
 
-seed: deps ## Load dbt seed data (usage: make seed [ENV=dev|test|prod] [MODE=local|docker])
+seed: ## Load dbt seed data (usage: make seed [ENV=dev|test|prod] [MODE=local|docker])
 	@python -m scripts.dbt_commands seed $(or $(ENV),dev) $(or $(MODE),local)
 
-snapshot: deps ## Run dbt snapshots (usage: make snapshot [ENV=dev|test|prod] [MODE=local|docker])
+snapshot: ## Run dbt snapshots (usage: make snapshot [ENV=dev|test|prod] [MODE=local|docker])
 	@python -m scripts.dbt_commands snapshot $(or $(ENV),dev) $(or $(MODE),local)
 
 test-unit: ## Run pre-deployment tests (usage: make test-unit [ENV=dev|test|prod] [MODE=local|docker])
@@ -102,18 +102,14 @@ type-check: ## Run mypy type checking on Python files
 	python -m mypy scripts/ --config-file=pyproject.toml --exclude="(transform/|target/|logs/)"
 
 format-docs: ## Run basic YAML and Markdown validation (prettier removed)
-	@echo "Basic file validation (prettier removed for performance)"
-	@python -c "import yaml, glob; [yaml.safe_load(open(f)) for f in glob.glob('**/*.yml', recursive=True) + glob.glob('**/*.yaml', recursive=True) if 'node_modules' not in f and 'dbt_packages' not in f]; print('YAML files are valid')"
+	python -m scripts.file_validators yaml
 
 security-alt: ## Run pip-audit for vulnerability scanning (safety removed)
 	python -m pip install pip-audit
 	python -m pip-audit --format=text
 
 validate-files: ## Run additional file format validation (JSON, TOML)
-	@echo "Validating JSON files..."
-	@python -c "import json, glob, os; files = [f for f in glob.glob('**/*.json', recursive=True) if 'node_modules' not in f and 'transform' not in f and os.path.getsize(f) > 0]; [print(f'✓ {f}') or json.load(open(f)) for f in files]; print(f'Validated {len(files)} JSON files')"
-	@echo "Validating TOML files..."
-	@python -c "import sys; sys.version_info >= (3,11) and __import__('tomllib') or print('TOML validation requires Python 3.11+, skipping')"
+	python -m scripts.file_validators all
 
 # Comprehensive Quality Commands
 quality-full: ## Run ALL quality checks (CI + optional tools)

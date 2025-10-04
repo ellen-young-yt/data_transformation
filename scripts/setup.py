@@ -5,9 +5,9 @@ This module handles the complete initial setup for the dbt data transformation p
 with environment awareness and cross-platform compatibility.
 """
 
-import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 from .environment_manager import env_manager
 from .utils import log_error, log_info, log_step, log_success, log_warning
@@ -87,11 +87,11 @@ class SetupManager:
         log_step("Setting up pre-commit hooks...")
 
         try:
-            # Check if pre-commit is available
-            precommit_executable = shutil.which("pre-commit")
-            if not precommit_executable:
+            # Get pre-commit executable from virtual environment
+            precommit_executable = self.env_manager.get_venv_executable("pre-commit")
+            if not Path(precommit_executable).exists():
                 log_warning("pre-commit not found, skipping hook installation")
-                log_info("Install pre-commit with: pip install pre-commit")
+                log_info("Install pre-commit with: make install")
                 return 0
 
             # Install pre-commit hooks

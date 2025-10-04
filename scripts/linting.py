@@ -36,10 +36,15 @@ class LintingManager:
         log_step("Running pre-commit hooks...")
 
         try:
-            # Check if pre-commit is available
-            precommit_executable = shutil.which("pre-commit")
-            if not precommit_executable:
-                raise FileNotFoundError("pre-commit executable not found in PATH")
+            # Use pre-commit from virtual environment
+            precommit_executable = self.env_manager.get_venv_executable("pre-commit")
+
+            # Fallback to system PATH if venv executable doesn't exist
+            if not os.path.exists(precommit_executable):
+                precommit_path = shutil.which("pre-commit")
+                if not precommit_path:
+                    raise FileNotFoundError("pre-commit executable not found in PATH")
+                precommit_executable = precommit_path
 
             # Build command
             command = [precommit_executable, "run"]
