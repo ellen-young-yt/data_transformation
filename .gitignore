@@ -5,11 +5,14 @@ logs/
 .env
 .env.local
 .env.*.local
+.user.yml
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+*.pyo
 *.so
 .Python
 build/
@@ -28,6 +31,21 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.mypy_cache/
+.pytest_cache/
+
+# Coverage reports
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.coverage
+.pytest_cache/
+.nyc_output
+
+# Elementary Data Platform
+edr_target/
 
 # Virtual environments
 venv/
@@ -36,6 +54,12 @@ env/
 ENV/
 env.bak/
 venv.bak/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # IDE
 .vscode/
@@ -54,6 +78,7 @@ ehthumbs.db
 Thumbs.db
 
 # Docker
+.docker/
 .dockerignore
 
 # AWS
@@ -74,10 +99,15 @@ logs/
 *.temp
 
 
-# Development scripts (not tracked)
+# Development scripts and READMEs
 dev-scripts/
+dev-documentation/
 
 # Claude-specific files
 CLAUDE.md
 claude.md
 .claude/
+
+# Development documentation
+DEVELOPMENT.md
+package-lock.yml

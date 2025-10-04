@@ -53,17 +53,20 @@ data_transformation/
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <your-repo-url>
    cd data_transformation
    ```
 
 2. **Set up environment**
+
    ```bash
    make setup
    ```
 
 3. **Configure environment variables**
+
    ```bash
    cp env.example .env
    # Edit .env with your Snowflake and AWS credentials
@@ -77,16 +80,19 @@ data_transformation/
 ### Development
 
 1. **Run linting**
+
    ```bash
    make lint
    ```
 
 2. **Run tests**
+
    ```bash
    make test
    ```
 
 3. **Run models**
+
    ```bash
    make run-dev
    ```
@@ -119,16 +125,19 @@ make docker-run
 ### Using Terraform
 
 1. Navigate to the terraform directory:
+
    ```bash
    cd terraform
    ```
 
 2. Initialize Terraform:
+
    ```bash
    terraform init
    ```
 
 3. Plan the deployment (choose dev, staging, or prod):
+
    ```bash
    terraform plan -var-file=environments/dev.tfvars
    ```
@@ -187,8 +196,9 @@ Copy `env.example` to `.env` and configure:
 ### dbt Profiles
 
 The project supports three environments:
+
 - `dev`: Development environment
-- `test`: Testing environment  
+- `test`: Testing environment
 - `prod`: Production environment
 
 Configure each environment in `profiles/profiles.yml`.
@@ -208,6 +218,7 @@ This project uses several dbt packages defined in `packages.yml`:
 ### Pre-commit Hooks
 
 The project includes pre-commit hooks for:
+
 - SQL linting with SQLFluff
 - Python code formatting with Black
 - YAML validation
@@ -216,6 +227,7 @@ The project includes pre-commit hooks for:
 ### dbt Tests
 
 Run dbt tests with:
+
 ```bash
 make test
 ```
@@ -237,32 +249,67 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) includes:
 
 ### Required Secrets
 
-Configure these secrets in your GitHub repository:
+**AWS Secrets Manager Configuration:**
 
-**Snowflake (Test Environment):**
-- `SNOWFLAKE_ACCOUNT`
-- `SNOWFLAKE_USER`
-- `SNOWFLAKE_PASSWORD`
-- `SNOWFLAKE_ROLE`
-- `SNOWFLAKE_DATABASE`
-- `SNOWFLAKE_WAREHOUSE`
-- `SNOWFLAKE_SCHEMA`
+All Snowflake credentials are managed through AWS Secrets Manager using environment-specific secrets:
 
-**Snowflake (Production Environment):**
-- `SNOWFLAKE_ACCOUNT_PROD`
-- `SNOWFLAKE_USER_PROD`
-- `SNOWFLAKE_PASSWORD_PROD`
-- `SNOWFLAKE_ROLE_PROD`
-- `SNOWFLAKE_DATABASE_PROD`
-- `SNOWFLAKE_WAREHOUSE_PROD`
-- `SNOWFLAKE_SCHEMA_PROD`
+- **Development**: `ellen-young-yt/dev/snowflake/credentials`
+- **Staging**: `ellen-young-yt/staging/snowflake/credentials`
+- **Production**: `ellen-young-yt/prod/snowflake/credentials`
+
+Each secret should contain a JSON object with the following keys:
+
+```json
+{
+  "account": "your_snowflake_account.region",
+  "user": "YOUR_USER",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",  # pragma: allowlist secret
+  "private_key_passphrase": "optional_passphrase_if_key_is_encrypted",
+  "role": "YOUR_ROLE",
+  "database": "YOUR_DATABASE",
+  "warehouse": "YOUR_WAREHOUSE",
+  "schema": "YOUR_SCHEMA"
+}
+```
+
+**GitHub Repository Secrets (for CI/CD):**
+
+Only AWS credentials are needed as GitHub repository secrets:
 
 **AWS:**
+
 - `AWS_ACCESS_KEY_ID` - AWS access key for deployment
-- `AWS_SECRET_ACCESS_KEY` - AWS secret key for deployment  
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key for deployment
 - `AWS_REGION` - AWS region (e.g., us-east-2)
 
 **Note:** With the new Terraform infrastructure, Lambda function and ECR repository names are automatically managed and don't require manual secrets.
+
+### Setting Up Snowflake Key-Pair Authentication
+
+This project uses key-pair authentication for enhanced security. To set this up:
+
+1. **Generate a key pair:**
+
+   ```bash
+   openssl genrsa -out snowflake_key.pem 2048
+   openssl rsa -in snowflake_key.pem -pubout -out snowflake_key.pub
+   ```
+
+2. **Add the public key to your Snowflake user:**
+
+   ```sql
+   ALTER USER YOUR_USER SET RSA_PUBLIC_KEY='[public key content without headers]';
+   ```
+
+3. **Store the private key in AWS Secrets Manager:**
+   - Copy the entire private key (including `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----`)
+   - Store it as the `private_key` field in your AWS secret
+   - If the key is encrypted, include the passphrase in `private_key_passphrase`
+
+4. **Test the connection:**
+   ```bash
+   make test-unit
+   ```
 
 ## 📚 Available Commands
 
@@ -301,11 +348,13 @@ The project follows dbt best practices:
 ## 📖 Documentation
 
 Generate and view documentation:
+
 ```bash
 make docs
 ```
 
 This will:
+
 1. Generate dbt documentation
 2. Start a local server
 3. Open documentation in your browser
@@ -325,6 +374,7 @@ This will:
 ## 🆘 Support
 
 For questions or issues:
+
 1. Check the documentation
 2. Review the CI/CD logs
 3. Create an issue in the repository
