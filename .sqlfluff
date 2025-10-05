@@ -1,15 +1,14 @@
 [sqlfluff]
-# SQLFluff configuration for dbt data transformation project
 dialect = snowflake
 templater = dbt
 runaway_limit = 10
 max_line_length = 80
 indent_unit = space
-tab_space_size = 2
+tab_space_size = 4
 large_file_skip_byte_limit = 40000
 
 [sqlfluff:indentation]
-tab_space_size = 2
+tab_space_size = 4
 indent_unit = space
 indented_joins = False
 indented_ctes = False
@@ -18,7 +17,7 @@ template_blocks_indent = True
 
 [sqlfluff:layout:type:comma]
 spacing_before = touch
-line_position = leading
+line_position = trailing
 
 [sqlfluff:layout:type:binary_operator]
 spacing_within = single
@@ -30,40 +29,32 @@ spacing_before = touch
 spacing_before = touch
 
 [sqlfluff:rules]
-# Enable all rules except the ones we explicitly disable
 single_table_references = consistent
 unquoted_identifiers_policy = all
 
-[sqlfluff:rules:L003]
-# Indentation errors
-
 [sqlfluff:rules:capitalisation.keywords]
-# Keywords should be consistently upper or lower case
+# Keywords should be consistently lower case
 capitalisation_policy = lower
 
 [sqlfluff:rules:capitalisation.identifiers]
-# Unquoted identifiers should be consistently upper or lower case
+# Unquoted identifiers should be consistently lower case
 extended_capitalisation_policy = lower
 
 [sqlfluff:rules:layout.long_lines]
 # Line endings should be consistent
 ignore_comment_lines = True
 
-[sqlfluff:rules:layout.commas]
-# Commas should be followed by a single whitespace unless followed by a comment
-line_position = leading
-
 [sqlfluff:rules:capitalisation.functions]
 # Function names should be consistently upper or lower case
-capitalisation_policy = upper
+capitalisation_policy = lower
 
 [sqlfluff:rules:capitalisation.literals]
 # Null & Boolean literals should be consistently upper or lower case
-capitalisation_policy = upper
+capitalisation_policy = lower
 
 [sqlfluff:rules:structure.subquery]
-# Allow subqueries in joins by not forbidding them
-# forbid_subquery_in = join  # Uncomment to forbid subqueries in joins
+# Forbid subqueries in joins
+forbid_subquery_in = join
 
 [sqlfluff:rules:convention.count_rows]
 # Consistent table alias styles
@@ -78,6 +69,15 @@ require_final_semicolon = False
 # GROUP BY/ORDER BY column references
 group_by_and_order_by_style = consistent
 
+[sqlfluff:rules:aliasing.table]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.column]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.expression]
+allow_scalar = False
+
 [sqlfluff:rules:references.special_chars]
 # Special characters in identifiers
 quoted_identifiers_policy = none
@@ -89,7 +89,7 @@ prefer_quoted_identifiers = False
 
 [sqlfluff:rules:capitalisation.types]
 # Data types should be consistently upper or lower case
-extended_capitalisation_policy = upper
+extended_capitalisation_policy = lower
 
 [sqlfluff:rules:convention.quoted_literals]
 # Consistent usage of preferred quotes for quoted literals
@@ -107,17 +107,9 @@ target = dev
 # Add any specific files or patterns to exclude
 # Example: models/staging/legacy_*.sql
 
-[sqlfluff:rules:structure.column_order]
-# Select wildcards then simple targets before calculations and aggregates
-select_clause_trailing_comma = forbid
-
 [sqlfluff:rules:layout.select_targets]
 # Select targets should be on a new line unless there is only one select target
 wildcard_policy = single
-
-[sqlfluff:rules:convention.select_trailing_comma]
-# Trailing commas within select clause
-select_clause_trailing_comma = forbid
 
 [sqlfluff:rules:layout.spacing]
 # Unnecessary whitespace found
@@ -126,7 +118,3 @@ touch_whitespace = False
 [sqlfluff:rules:ambiguous.join]
 # INNER JOIN should be fully qualified
 fully_qualify_join_types = inner
-
-[sqlfluff:rules:layout.set_operators]
-# Set operators should be surrounded by newlines
-line_position = alone

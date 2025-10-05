@@ -159,7 +159,6 @@ jobs:
     needs: [detect-environment, build-image]
     environment:
       name: ${{ needs.detect-environment.outputs.environment }}
-      url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -190,8 +189,6 @@ jobs:
 
           # Generate documentation
           make docs
-
-          echo "deployment-url=https://docs.example.com/${{ needs.detect-environment.outputs.environment }}" >> $GITHUB_OUTPUT
 
           # Log deployment details for rollback purposes
           echo "Deployment completed successfully" >> deployment.log

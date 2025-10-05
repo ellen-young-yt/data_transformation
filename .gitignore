@@ -44,6 +44,9 @@ htmlcov/
 .pytest_cache/
 .nyc_output
 
+# CI/CD artifacts
+quality-reports/
+
 # Elementary Data Platform
 edr_target/
 
