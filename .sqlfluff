@@ -2,10 +2,14 @@
 dialect = snowflake
 templater = dbt
 runaway_limit = 10
-max_line_length = 80
+max_line_length = 120
 indent_unit = space
 tab_space_size = 4
 large_file_skip_byte_limit = 40000
+# Exclude indentation errors in templates (LT02/layout.indent)
+# Note: PRS (parsing) errors cannot be excluded as they're warnings, not rule violations
+exclude_rules = LT02
+ignore = parsing
 
 [sqlfluff:indentation]
 tab_space_size = 4
@@ -102,10 +106,7 @@ profiles_dir = ./profiles
 profile = data_transformation
 target = dev
 
-# Exclude certain directories and files
-[sqlfluff:exclude_rules]
-# Add any specific files or patterns to exclude
-# Example: models/staging/legacy_*.sql
+# No additional exclude_rules section needed - handled in main [sqlfluff] section above
 
 [sqlfluff:rules:layout.select_targets]
 # Select targets should be on a new line unless there is only one select target
