@@ -1,0 +1,8 @@
+ID,NAME,DESCRIPTION
+0,Watch Page,"The data pertains to activity that occurred on the video's YouTube watch page or in an official YouTube application, such as the YouTube Android app."
+1,Embed,The data pertains to activity that occurred on another website or application where the video was embedded using an <iframe> or <object> embed.
+2,Channel Page,The data pertains to activity that occurred on a YouTube channel page.
+5,Other,The data pertains to metrics that cannot be classified into one of the other listed location types.
+7,Browsing Features,"The data pertains to views that took place on the YouTube home page or home screen, in the user's subscription feed, or in another YouTube browsing feature."
+8,Search Results,The data pertains to views that took place directly on the YouTube search results page.
+10,Shorts Feed,The data pertains to views that took place on the YouTube Shorts feed.

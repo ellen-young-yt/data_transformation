@@ -21,62 +21,19 @@ clean-targets: # directories to be removed by `dbt clean`
   - "dbt_packages"
 
 # Configuring models
-# Full documentation: https://docs.getdbt.com/reference/model-configs
 models:
   data_transformation:
-    # Config indicated by + and applies to all files under models/example/
-    +materialized: table
-    +on_schema_change: "fail"
-    +docs:
-      node_color: "blue"
-
-    # Example of how to configure specific models
-    staging:
-      +materialized: view
-      +on_schema_change: "append_new_columns"
-
-    # marts:
-    #   +materialized: table
-    #   +on_schema_change: "fail"
-    #   # Uncomment when marts models are added
-
-# Configuring tests
-# Full documentation: https://docs.getdbt.com/reference/test-configs
-# tests:
-#   data_transformation:
-#     +store_failures: true
-#     +limit: 100
-# Uncomment when data tests are added
-
-# Configuring snapshots
-# Full documentation: https://docs.getdbt.com/reference/snapshot-configs
-# snapshots:
-#   data_transformation:
-#     +target_schema: snapshots
-#     +strategy: timestamp
-#     +updated_at: updated_at
-# Uncomment when snapshot models are added
+    +materialized: view
+    +on_schema_change: "append_new_columns"
 
 # Configuring seeds
-# Full documentation: https://docs.getdbt.com/reference/seed-configs
-# seeds:
-#   data_transformation:
-#     +schema: seed_data
-#     +quote_columns: true
-# Uncomment when seed files are added
-
-# Configuring variables
-# Full documentation: https://docs.getdbt.com/reference/dbt_project.yml#vars
-vars:
-  # Variables can be used in models, tests, and other dbt resources
-  # Example: "{{ var('my_variable') }}"
-  start_date: "2020-01-01"
-  end_date: "2023-12-31"
+seeds:
+  data_transformation:
+    +database: staging
+    +schema: manual
 
 # Configuring packages
-# Full documentation: https://docs.getdbt.com/reference/dbt_project.yml#packages
 packages-install-path: "dbt_packages"
 
 # Configuring query comments
-# Full documentation: https://docs.getdbt.com/reference/dbt_project.yml#query-comment
 query-comment: "dbt run by {{ target.name }} at {{ run_started_at }}"

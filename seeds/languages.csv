@@ -1,0 +1,367 @@
+CODE,NAME
+ab,Abkhazian
+aa,Afar
+af,Afrikaans
+ak,Akan
+sq,Albanian
+am,Amharic
+ar,Arabic
+an,Aragonese
+hy,Armenian
+as,Assamese
+av,Avaric
+ae,Avestan
+ay,Aymara
+az,Azerbaijani
+bm,Bambara
+ba,Bashkir
+eu,Basque
+be,Belarusian
+bn,Bengali
+bi,Bislama
+bs,Bosnian
+br,Breton
+bg,Bulgarian
+my,Burmese
+ca,"Catalan, Valencian"
+km,Central Khmer
+ch,Chamorro
+ce,Chechen
+ny,"Chichewa, Chewa, Nyanja"
+zh,Chinese
+cu,"Church Slavonic, Old Slavonic, Old Church Slavonic"
+cv,Chuvash
+kw,Cornish
+co,Corsican
+cr,Cree
+hr,Croatian
+cs,Czech
+da,Danish
+dv,"Divehi, Dhivehi, Maldivian"
+nl,"Dutch, Flemish"
+dz,Dzongkha
+en,English
+eo,Esperanto
+et,Estonian
+ee,Ewe
+fo,Faroese
+fj,Fijian
+fi,Finnish
+fr,French
+ff,Fulah
+gd,"Gaelic, Scottish Gaelic"
+gl,Galician
+lg,Ganda
+ka,Georgian
+de,German
+el,"Greek, Modern (1453–)"
+gn,Guarani
+gu,Gujarati
+ht,"Haitian, Haitian Creole"
+ha,Hausa
+he,Hebrew
+hz,Herero
+hi,Hindi
+ho,Hiri Motu
+hu,Hungarian
+is,Icelandic
+io,Ido
+ig,Igbo
+id,Indonesian
+ia,Interlingua (International Auxiliary Language Association)
+ie,"Interlingue, Occidental"
+iu,Inuktitut
+ik,Inupiaq
+ga,Irish
+it,Italian
+ja,Japanese
+jv,Javanese
+kl,"Kalaallisut, Greenlandic"
+kn,Kannada
+kr,Kanuri
+ks,Kashmiri
+kk,Kazakh
+ki,"Kikuyu, Gikuyu"
+rw,Kinyarwanda
+kv,Komi
+kg,Kongo
+ko,Korean
+kj,"Kuanyama, Kwanyama"
+ku,Kurdish
+ky,"Kyrgyz, Kirghiz"
+lo,Lao
+la,Latin
+lv,Latvian
+li,"Limburgan, Limburger, Limburgish"
+ln,Lingala
+lt,Lithuanian
+lu,Luba-Katanga
+lb,"Luxembourgish, Letzeburgesch"
+mk,Macedonian
+mg,Malagasy
+ms,Malay
+ml,Malayalam
+mt,Maltese
+gv,Manx
+mi,Maori
+mr,Marathi
+mh,Marshallese
+mn,Mongolian
+na,Nauru
+nv,"Navajo, Navaho"
+ng,Ndonga
+ne,Nepali
+nd,North Ndebele
+se,Northern Sami
+no,Norwegian
+nb,Norwegian Bokmål
+nn,Norwegian Nynorsk
+oc,Occitan
+oj,Ojibwa
+or,Oriya
+om,Oromo
+os,"Ossetian, Ossetic"
+pi,Pali
+ps,"Pashto, Pushto"
+fa,Persian
+pl,Polish
+pt,Portuguese
+pa,"Punjabi, Panjabi"
+qu,Quechua
+ro,"Romanian, Moldavian, Moldovan"
+rm,Romansh
+rn,Rundi
+ru,Russian
+sm,Samoan
+sg,Sango
+sa,Sanskrit
+sc,Sardinian
+sr,Serbian
+sn,Shona
+ii,"Sichuan Yi, Nuosu"
+sd,Sindhi
+si,"Sinhala, Sinhalese"
+sk,Slovak
+sl,Slovenian
+so,Somali
+nr,South Ndebele
+st,Southern Sotho
+es,"Spanish, Castilian"
+su,Sundanese
+sw,Swahili
+ss,Swati
+sv,Swedish
+tl,Tagalog
+ty,Tahitian
+tg,Tajik
+ta,Tamil
+tt,Tatar
+te,Telugu
+th,Thai
+bo,Tibetan
+ti,Tigrinya
+to,Tonga (Tonga Islands)
+ts,Tsonga
+tn,Tswana
+tr,Turkish
+tk,Turkmen
+tw,Twi
+ug,"Uighur, Uyghur"
+uk,Ukrainian
+ur,Urdu
+uz,Uzbek
+ve,Venda
+vi,Vietnamese
+vo,Volapük
+wa,Walloon
+cy,Welsh
+fy,Western Frisian
+wo,Wolof
+xh,Xhosa
+yi,Yiddish
+yo,Yoruba
+za,"Zhuang, Chuang"
+zu,Zulu
+abk,Abkhazian
+aar,Afar
+afr,Afrikaans
+aka,Akan
+sqi,Albanian
+amh,Amharic
+ara,Arabic
+arg,Aragonese
+hye,Armenian
+asm,Assamese
+ava,Avaric
+ave,Avestan
+aym,Aymara
+aze,Azerbaijani
+bam,Bambara
+bak,Bashkir
+eus,Basque
+bel,Belarusian
+ben,Bengali
+bis,Bislama
+bos,Bosnian
+bre,Breton
+bul,Bulgarian
+mya,Burmese
+cat,"Catalan, Valencian"
+khm,Central Khmer
+cha,Chamorro
+che,Chechen
+nya,"Chichewa, Chewa, Nyanja"
+zho,Chinese
+chu,"Church Slavonic, Old Slavonic, Old Church Slavonic"
+chv,Chuvash
+cor,Cornish
+cos,Corsican
+cre,Cree
+hrv,Croatian
+ces,Czech
+dan,Danish
+div,"Divehi, Dhivehi, Maldivian"
+nld,"Dutch, Flemish"
+dzo,Dzongkha
+eng,English
+epo,Esperanto
+est,Estonian
+ewe,Ewe
+fao,Faroese
+fij,Fijian
+fin,Finnish
+fra,French
+ful,Fulah
+gla,"Gaelic, Scottish Gaelic"
+glg,Galician
+lug,Ganda
+kat,Georgian
+deu,German
+ell,"Greek, Modern (1453–)"
+grn,Guarani
+guj,Gujarati
+hat,"Haitian, Haitian Creole"
+hau,Hausa
+heb,Hebrew
+her,Herero
+hin,Hindi
+hmo,Hiri Motu
+hun,Hungarian
+isl,Icelandic
+ido,Ido
+ibo,Igbo
+ind,Indonesian
+ina,Interlingua (International Auxiliary Language Association)
+ile,"Interlingue, Occidental"
+iku,Inuktitut
+ipk,Inupiaq
+gle,Irish
+ita,Italian
+jpn,Japanese
+jav,Javanese
+kal,"Kalaallisut, Greenlandic"
+kan,Kannada
+kau,Kanuri
+kas,Kashmiri
+kaz,Kazakh
+kik,"Kikuyu, Gikuyu"
+kin,Kinyarwanda
+kom,Komi
+kon,Kongo
+kor,Korean
+kua,"Kuanyama, Kwanyama"
+kur,Kurdish
+kir,"Kyrgyz, Kirghiz"
+lao,Lao
+lat,Latin
+lav,Latvian
+lim,"Limburgan, Limburger, Limburgish"
+lin,Lingala
+lit,Lithuanian
+lub,Luba-Katanga
+ltz,"Luxembourgish, Letzeburgesch"
+mkd,Macedonian
+mlg,Malagasy
+msa,Malay
+mal,Malayalam
+mlt,Maltese
+glv,Manx
+mri,Maori
+mar,Marathi
+mah,Marshallese
+mon,Mongolian
+nau,Nauru
+nav,"Navajo, Navaho"
+ndo,Ndonga
+nep,Nepali
+nde,North Ndebele
+sme,Northern Sami
+nor,Norwegian
+nob,Norwegian Bokmål
+nno,Norwegian Nynorsk
+oci,Occitan
+oji,Ojibwa
+ori,Oriya
+orm,Oromo
+oss,"Ossetian, Ossetic"
+pli,Pali
+pus,"Pashto, Pushto"
+fas,Persian
+pol,Polish
+por,Portuguese
+pan,"Punjabi, Panjabi"
+que,Quechua
+ron,"Romanian, Moldavian, Moldovan"
+roh,Romansh
+run,Rundi
+rus,Russian
+smo,Samoan
+sag,Sango
+san,Sanskrit
+srd,Sardinian
+srp,Serbian
+sna,Shona
+iii,"Sichuan Yi, Nuosu"
+snd,Sindhi
+sin,"Sinhala, Sinhalese"
+slk,Slovak
+slv,Slovenian
+som,Somali
+nbl,South Ndebele
+sot,Southern Sotho
+spa,"Spanish, Castilian"
+sun,Sundanese
+swa,Swahili
+ssw,Swati
+swe,Swedish
+tgl,Tagalog
+tah,Tahitian
+tgk,Tajik
+tam,Tamil
+tat,Tatar
+tel,Telugu
+tha,Thai
+bod,Tibetan
+tir,Tigrinya
+ton,Tonga (Tonga Islands)
+tso,Tsonga
+tsn,Tswana
+tur,Turkish
+tuk,Turkmen
+twi,Twi
+uig,"Uighur, Uyghur"
+ukr,Ukrainian
+urd,Urdu
+uzb,Uzbek
+ven,Venda
+vie,Vietnamese
+vol,Volapük
+wln,Walloon
+cym,Welsh
+fry,Western Frisian
+wol,Wolof
+xho,Xhosa
+yid,Yiddish
+yor,Yoruba
+zha,"Zhuang, Chuang"
+zul,Zulu
