@@ -48,7 +48,7 @@ def validate_yaml_files() -> int:
     errors = []
     for file_path in filtered_files:
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 yaml.safe_load(f)
             log_info(f"  ✓ {file_path}")
         except yaml.YAMLError as e:
@@ -97,7 +97,7 @@ def validate_json_files() -> int:
     errors = []
     for file_path in filtered_files:
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 json.load(f)
             log_info(f"  ✓ {file_path}")
         except json.JSONDecodeError as e:
@@ -124,11 +124,6 @@ def validate_toml_files() -> int:
         Exit code (0 for success, 1 for failure)
     """
     log_info("Validating TOML files...")
-
-    # Check Python version for tomllib support
-    if sys.version_info < (3, 11):
-        log_warning("TOML validation requires Python 3.11+, skipping")
-        return 0
 
     import tomllib
 

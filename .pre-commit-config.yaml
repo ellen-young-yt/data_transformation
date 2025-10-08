@@ -22,24 +22,13 @@ repos:
       - id: detect-private-key
         exclude: '^(README\.md|\.env\.example)$'
 
-  # Python code formatting and linting
-  - repo: https://github.com/psf/black
-    rev: 23.12.1
+  # Python code formatting and linting with Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.0
     hooks:
-      - id: black
-        language_version: python3.12
-        args: [--config=pyproject.toml]
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        args: [--settings-path=pyproject.toml]
-
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
 
 
   # SQL linting with SQLFluff
@@ -53,7 +42,6 @@ repos:
             "dbt-core==1.10.11",
             "dbt-snowflake==1.10.2",
           ]
-        args: [--config=.sqlfluff, --templater=raw]
         files: '^models/.*\.sql$'
         exclude: "^(dbt_packages/|target/|logs/|transform/)"
       - id: sqlfluff-fix
@@ -63,7 +51,6 @@ repos:
             "dbt-core==1.10.11",
             "dbt-snowflake==1.10.2",
           ]
-        args: [--config=.sqlfluff, --templater=raw]
         files: '^models/.*\.sql$'
         exclude: "^(dbt_packages/|target/|logs/|transform/)"
 

@@ -5,10 +5,8 @@ Simple utilities for dbt data transformation project.
 Basic logging, file operations, and constants with environment awareness.
 """
 
-from typing import Optional
 
-
-def _get_environment_context() -> Optional[str]:
+def _get_environment_context() -> str | None:
     """Get environment context for enhanced logging."""
     try:
         # Import here to avoid circular imports

@@ -11,7 +11,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional, Union
 
 from .environment_manager import ExecutionMode, env_manager
 from .utils import log_error, log_info, log_step, log_success, log_warning
@@ -27,10 +26,10 @@ class DBTCommandRunner:
 
     def run_command(
         self,
-        command: Union[str, List[str]],
+        command: str | list[str],
         check: bool = True,
         capture_output: bool = False,
-        cwd: Optional[Path] = None,
+        cwd: Path | None = None,
     ) -> subprocess.CompletedProcess:
         """
         Run a command with proper environment setup.
@@ -47,10 +46,7 @@ class DBTCommandRunner:
         Raises:
             subprocess.CalledProcessError: If command fails and check=True
         """
-        if isinstance(command, str):
-            command_list = command.split()
-        else:
-            command_list = command
+        command_list = command.split() if isinstance(command, str) else command
 
         # Validate command executable exists and prefer virtual environment
         if command_list:
@@ -67,13 +63,13 @@ class DBTCommandRunner:
                             f"Executable '{command_list[0]}' not found in virtual environment or PATH"
                         )
                     command_list[0] = executable
-            except Exception:
+            except Exception as e:
                 # Fall back to system PATH if virtual environment lookup fails
                 executable = shutil.which(command_list[0])
                 if not executable:
                     raise FileNotFoundError(
                         f"Executable '{command_list[0]}' not found in PATH"
-                    )
+                    ) from e
                 command_list[0] = executable
 
         # Setup environment variables
@@ -109,8 +105,8 @@ class DBTCommandRunner:
     def run_dbt_command(
         self,
         dbt_cmd: str,
-        target: Optional[str] = None,
-        additional_args: Optional[List[str]] = None,
+        target: str | None = None,
+        additional_args: list[str] | None = None,
     ) -> subprocess.CompletedProcess:
         """
         Run a dbt command with proper configuration.
@@ -140,9 +136,7 @@ class DBTCommandRunner:
 
         return self.run_command(command)
 
-    def compile_models(
-        self, target: Optional[str] = None, mode: Optional[str] = None
-    ) -> int:
+    def compile_models(self, target: str | None = None, mode: str | None = None) -> int:
         """
         Compile dbt models.
 
@@ -155,9 +149,7 @@ class DBTCommandRunner:
         """
         return self._run_dbt_command_with_mode("compile", target, mode)
 
-    def build_models(
-        self, target: Optional[str] = None, mode: Optional[str] = None
-    ) -> int:
+    def build_models(self, target: str | None = None, mode: str | None = None) -> int:
         """
         Build dbt models (run + test).
 
@@ -170,9 +162,7 @@ class DBTCommandRunner:
         """
         return self._run_dbt_command_with_mode("build", target, mode)
 
-    def seed_data(
-        self, target: Optional[str] = None, mode: Optional[str] = None
-    ) -> int:
+    def seed_data(self, target: str | None = None, mode: str | None = None) -> int:
         """
         Load seed data.
 
@@ -256,9 +246,7 @@ class DBTCommandRunner:
             log_error(f"Error listing packages: {e}")
             return 1
 
-    def run_snapshots(
-        self, target: Optional[str] = None, mode: Optional[str] = None
-    ) -> int:
+    def run_snapshots(self, target: str | None = None, mode: str | None = None) -> int:
         """
         Run dbt snapshots.
 
@@ -271,9 +259,7 @@ class DBTCommandRunner:
         """
         return self._run_dbt_command_with_mode("snapshot", target, mode)
 
-    def run_unit_tests(
-        self, target: Optional[str] = None, mode: Optional[str] = None
-    ) -> int:
+    def run_unit_tests(self, target: str | None = None, mode: str | None = None) -> int:
         """
         Run unit tests (pre-deployment).
 
@@ -343,7 +329,7 @@ class DBTCommandRunner:
         return exit_code
 
     def run_integration_tests(
-        self, target: Optional[str] = None, mode: Optional[str] = None
+        self, target: str | None = None, mode: str | None = None
     ) -> int:
         """
         Run integration tests (post-deployment).
@@ -442,9 +428,7 @@ class DBTCommandRunner:
 
         return exit_code
 
-    def run_all_tests(
-        self, target: Optional[str] = None, mode: Optional[str] = None
-    ) -> int:
+    def run_all_tests(self, target: str | None = None, mode: str | None = None) -> int:
         """
         Run both unit and integration tests.
 
@@ -475,9 +459,7 @@ class DBTCommandRunner:
 
         return overall_exit_code
 
-    def run_models(
-        self, target: Optional[str] = None, mode: Optional[str] = None
-    ) -> int:
+    def run_models(self, target: str | None = None, mode: str | None = None) -> int:
         """
         Run dbt models.
 
@@ -491,7 +473,7 @@ class DBTCommandRunner:
         return self._run_dbt_command_with_mode("run", target, mode)
 
     def _run_dbt_command_with_mode(
-        self, command: str, target: Optional[str] = None, mode: Optional[str] = None
+        self, command: str, target: str | None = None, mode: str | None = None
     ) -> int:
         """
         Run dbt command with specified execution mode (local or docker).
@@ -541,7 +523,7 @@ class DBTCommandRunner:
             log_error(f"Unexpected error: {e}")
             return 1
 
-    def generate_docs(self, target: Optional[str] = None) -> int:
+    def generate_docs(self, target: str | None = None) -> int:
         """
         Generate dbt documentation.
 
@@ -563,7 +545,7 @@ class DBTCommandRunner:
             log_error(f"dbt docs generate failed with exit code {e.returncode}")
             return e.returncode
 
-    def serve_docs(self, target: Optional[str] = None, port: int = 8080) -> int:
+    def serve_docs(self, target: str | None = None, port: int = 8080) -> int:
         """
         Serve dbt documentation.
 
@@ -622,7 +604,7 @@ def main() -> None:
     command = sys.argv[1]
     args = sys.argv[2:]
 
-    def parse_target_mode_args() -> tuple[Optional[str], Optional[str]]:
+    def parse_target_mode_args() -> tuple[str | None, str | None]:
         """Parse common target and mode arguments."""
         target = args[0] if args else None
         mode = args[1] if len(args) > 1 else None

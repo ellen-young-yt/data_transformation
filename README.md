@@ -220,7 +220,7 @@ This project uses several dbt packages defined in `packages.yml`:
 The project includes pre-commit hooks for:
 
 - SQL linting with SQLFluff
-- Python code formatting with Black
+- Python code formatting with Ruff
 - YAML validation
 - General file checks
 

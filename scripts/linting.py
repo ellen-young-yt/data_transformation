@@ -8,7 +8,6 @@ import os
 import shutil
 import subprocess
 import sys
-from typing import List, Optional
 
 from .environment_manager import env_manager
 from .utils import log_error, log_info, log_step, log_success, log_warning
@@ -76,7 +75,7 @@ class LintingManager:
             log_error(f"Pre-commit hooks failed with exit code {e.returncode}")
             return e.returncode
 
-    def run_sqlfluff(self, fix: bool = False, paths: Optional[List[str]] = None) -> int:
+    def run_sqlfluff(self, fix: bool = False, paths: list[str] | None = None) -> int:
         """
         Run SQLFluff linting.
 

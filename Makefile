@@ -11,7 +11,7 @@ help: ## Show this help message
 	@echo '  deps            Install dbt packages'
 	@echo ''
 	@echo 'Fast Quality Checks (used in CI/CD):'
-	@echo '  lint            Run essential linting checks (black, isort, flake8, sqlfluff)'
+	@echo '  lint            Run essential linting checks (ruff, sqlfluff)'
 	@echo '  lint-fix        Fix linting issues automatically'
 	@echo '  pre-commit      Run all pre-commit hooks on all files'
 	@echo ''
@@ -22,7 +22,7 @@ help: ## Show this help message
 	@echo '  validate-files  Run additional file format validation (JSON, TOML)'
 	@echo '  quality-full    Run ALL quality checks (CI + optional tools)'
 	@echo '  security-full   Run both pip-audit AND safety for comprehensive scanning'
-	@echo '  format-all      Run all formatting tools (black, isort, prettier)'
+	@echo '  format-all      Run all formatting tools'
 	@echo ''
 	@echo 'dbt Operations:'
 	@echo '  compile         Compile dbt models to SQL'
@@ -94,7 +94,7 @@ validate: ## Validate project structure and environment
 	@python -m scripts.environment_manager info
 
 pre-commit: ## Run all pre-commit hooks on all files
-	pre-commit run --all-files
+	python -m scripts.linting precommit
 
 # Optional Quality Tools (removed from CI/CD for speed)
 type-check: ## Run mypy type checking on Python files
@@ -125,7 +125,7 @@ security-full: ## Run pip-audit for comprehensive security scanning (safety remo
 	@echo "=== pip-audit results ==="
 	python -m pip_audit || true
 
-format-all: ## Run all formatting tools (black, isort)
+format-all: ## Run all formatting tools
 	@echo "Running all formatters..."
 	python -m scripts.linting all --fix
 	$(MAKE) format-docs

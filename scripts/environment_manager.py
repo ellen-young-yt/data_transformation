@@ -19,7 +19,7 @@ import sys
 import time
 from enum import Enum, auto
 from pathlib import Path
-from typing import Dict, Optional, Union
+
 
 try:
     import boto3
@@ -70,7 +70,7 @@ class EnvironmentManager:
     compatibility for the data transformation project.
     """
 
-    def __init__(self, env_override: Optional[str] = None):
+    def __init__(self, env_override: str | None = None):
         """
         Initialize the environment manager.
 
@@ -226,7 +226,7 @@ class EnvironmentManager:
         # Check if docker is available in PATH
         return shutil.which("docker") is not None
 
-    def get_execution_mode(self, requested_mode: Optional[str] = None) -> ExecutionMode:
+    def get_execution_mode(self, requested_mode: str | None = None) -> ExecutionMode:
         """
         Determine execution mode (local/docker) based on context and request.
 
@@ -243,35 +243,32 @@ class EnvironmentManager:
         if requested_mode:
             try:
                 mode_enum = ExecutionMode(requested_mode)
-            except ValueError:
+            except ValueError as e:
                 valid_modes = [mode.value for mode in ExecutionMode]
                 raise ValueError(
                     f"Invalid execution mode '{requested_mode}'. Must be one of: {valid_modes}"
-                )
+                ) from e
         else:
             # Default to local execution
             mode_enum = ExecutionMode.LOCAL
 
         # Validate requested mode is supported
-        if mode_enum == ExecutionMode.DOCKER:
-            if not self.supports_docker_execution():
-                if self._execution_context == ExecutionContext.GITHUB_ACTIONS:
-                    raise ValueError(
-                        "Docker execution not supported in CI/CD environment"
-                    )
-                elif self._execution_context in (
-                    ExecutionContext.DOCKER,
-                    ExecutionContext.ECS,
-                ):
-                    raise ValueError(
-                        "Docker execution not supported when already running in container"
-                    )
-                else:
-                    raise ValueError("Docker not available in PATH")
+        if mode_enum == ExecutionMode.DOCKER and not self.supports_docker_execution():
+            if self._execution_context == ExecutionContext.GITHUB_ACTIONS:
+                raise ValueError("Docker execution not supported in CI/CD environment")
+            elif self._execution_context in (
+                ExecutionContext.DOCKER,
+                ExecutionContext.ECS,
+            ):
+                raise ValueError(
+                    "Docker execution not supported when already running in container"
+                )
+            else:
+                raise ValueError("Docker not available in PATH")
 
         return mode_enum
 
-    def get_environment_variables(self) -> Dict[str, str]:
+    def get_environment_variables(self) -> dict[str, str]:
         """Get environment-specific variables."""
         base_vars = {
             "DBT_PROFILES_DIR": self.get_dbt_profile_dir(),
@@ -293,7 +290,7 @@ class EnvironmentManager:
 
         return base_vars
 
-    def format_path(self, path: Union[str, Path]) -> str:
+    def format_path(self, path: str | Path) -> str:
         """
         Format a path appropriately for the current platform.
 
@@ -311,7 +308,7 @@ class EnvironmentManager:
 
         return str(path_obj)
 
-    def get_secrets_config(self) -> Dict[str, str]:
+    def get_secrets_config(self) -> dict[str, str]:
         """Get secrets configuration based on environment."""
         base_config = {
             "secret_name": f"ellen-young-yt/{self.environment.value}/snowflake/credentials",
@@ -321,17 +318,17 @@ class EnvironmentManager:
         }
 
         if self.environment == Environment.DEV:
-            base_config[
-                "secret_name"
-            ] = "ellen-young-yt/dev/snowflake/credentials"  # pragma: allowlist secret  # nosec
+            base_config["secret_name"] = (
+                "ellen-young-yt/dev/snowflake/credentials"  # pragma: allowlist secret  # nosec
+            )
         elif self.environment == Environment.STAGING:
-            base_config[
-                "secret_name"
-            ] = "ellen-young-yt/staging/snowflake/credentials"  # pragma: allowlist secret  # nosec
+            base_config["secret_name"] = (
+                "ellen-young-yt/staging/snowflake/credentials"  # pragma: allowlist secret  # nosec
+            )
         elif self.environment == Environment.PROD:
-            base_config[
-                "secret_name"
-            ] = "ellen-young-yt/prod/snowflake/credentials"  # pragma: allowlist secret  # nosec
+            base_config["secret_name"] = (
+                "ellen-young-yt/prod/snowflake/credentials"  # pragma: allowlist secret  # nosec
+            )
 
         return base_config
 
@@ -340,14 +337,12 @@ class EnvironmentManager:
     def _detect_platform(self) -> Platform:
         """Detect the current platform."""
         system = platform.system().lower()
-        if system == "windows":
-            return Platform.WINDOWS
-        elif system == "linux":
-            return Platform.LINUX
-        elif system == "darwin":
-            return Platform.MACOS
-        else:
-            return Platform.UNKNOWN
+        platform_map = {
+            "windows": Platform.WINDOWS,
+            "linux": Platform.LINUX,
+            "darwin": Platform.MACOS,
+        }
+        return platform_map.get(system, Platform.UNKNOWN)
 
     def _detect_project_root(self) -> Path:
         """Detect the project root directory."""
@@ -380,7 +375,7 @@ class EnvironmentManager:
         # Default to local
         return ExecutionContext.LOCAL
 
-    def _determine_environment(self, override: Optional[str]) -> Environment:
+    def _determine_environment(self, override: str | None) -> Environment:
         """Determine the current environment."""
         if override:
             try:
@@ -461,7 +456,7 @@ class EnvironmentManager:
         # Only load AWS secrets for staging/production or when explicitly requested
         if (
             self.environment == Environment.DEV
-            and not os.getenv("USE_AWS_SECRETS", "").lower() == "true"
+            and os.getenv("USE_AWS_SECRETS", "").lower() != "true"
         ):
             return False
 

@@ -8,7 +8,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional, Union
 
 from .environment_manager import env_manager
 from .utils import log_error, log_info, log_step, log_success
@@ -23,7 +22,7 @@ class DockerManager:
         self.env_manager.setup_environment()
 
     def build_image(
-        self, tag: Optional[str] = None, dockerfile: str = "Dockerfile"
+        self, tag: str | None = None, dockerfile: str = "Dockerfile"
     ) -> int:
         """
         Build Docker image.
@@ -165,7 +164,7 @@ class DockerManager:
             log_error(f"Unexpected error running container: {e}")
             return 1
 
-    def _convert_to_docker_path(self, path: Union[str, Path]) -> str:
+    def _convert_to_docker_path(self, path: str | Path) -> str:
         """
         Convert Windows paths to Docker-compatible paths.
 

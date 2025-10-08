@@ -234,7 +234,7 @@ pre-commit autoupdate
 ```
 
 **Included checks**:
-- Python: black, isort, flake8, mypy, bandit
+- Python: ruff, mypy, bandit
 - SQL: SQLFluff with dbt templating
 - General: YAML validation, trailing whitespace, secrets detection
 - Project-specific: dbt compilation, environment validation
@@ -288,7 +288,7 @@ Important artifacts retained:
 
 **"Pre-commit hooks failing"**:
 - Run `pre-commit run --all-files` locally
-- Check specific tool outputs (black, flake8, etc.)
+- Check specific tool outputs
 - Update hooks: `pre-commit autoupdate`
 
 **"dbt compilation errors"**:
