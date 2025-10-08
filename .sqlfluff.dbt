@@ -1,26 +1,25 @@
 # =============================================================================
-# SQLFluff Configuration for Local Development & Pre-commit (raw templater)
+# SQLFluff Configuration for CI Pipeline (dbt templater)
 # =============================================================================
-# This file is used for fast local linting and pre-commit hooks.
-# Uses raw templater for speed and no dependencies.
-#
-# For CI validation with dbt templater, see .sqlfluff.dbt
+# This file is identical to .sqlfluff except for the following differences:
+#   1. templater = dbt (instead of raw)
+#   2. exclude_rules = LT02 (RF01 not excluded - dbt can validate references)
+#   3. Added [sqlfluff:templater:dbt] section
 #
 # IMPORTANT: When updating SQL rules, update BOTH .sqlfluff and .sqlfluff.dbt
 # =============================================================================
 
 [sqlfluff]
 dialect = snowflake
-templater = raw
+templater = dbt
 runaway_limit = 10
 max_line_length = 120
 indent_unit = space
 tab_space_size = 4
 large_file_skip_byte_limit = 40000
-# Exclude rules that don't work with raw templater:
-# - LT02: indentation errors in templates
-# - RF01: references not found (can't resolve dbt refs/sources with raw templater)
-exclude_rules = LT02,RF01
+# Exclude LT02 (indentation in templates) - dbt handles this
+# Note: RF01 NOT excluded here - dbt templater can validate references
+exclude_rules = LT02
 ignore = parsing
 
 [sqlfluff:indentation]
@@ -110,6 +109,13 @@ extended_capitalisation_policy = lower
 [sqlfluff:rules:convention.quoted_literals]
 # Consistent usage of preferred quotes for quoted literals
 preferred_quoted_literal_style = single_quotes
+
+# dbt templater configuration
+[sqlfluff:templater:dbt]
+project_dir = .
+profiles_dir = ./profiles
+profile = data_transformation
+target = dev
 
 [sqlfluff:rules:layout.select_targets]
 # Select targets should be on a new line unless there is only one select target

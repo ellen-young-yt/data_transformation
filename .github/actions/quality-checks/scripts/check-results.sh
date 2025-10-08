@@ -52,6 +52,15 @@ else
     echo "✅ All pre-commit checks passed"
 fi
 
+# Check SQLFluff with dbt templater (comprehensive validation)
+SQLFLUFF_DBT_EXIT="${SQLFLUFF_DBT_EXIT:-0}"
+if [ "$SQLFLUFF_DBT_EXIT" != "0" ]; then
+    has_warnings="true"
+    echo "⚠️ SQLFluff dbt templater found issues (non-blocking)"
+else
+    echo "✅ SQLFluff dbt templater validation passed"
+fi
+
 # Check dbt compilation
 DBT_COMPILE_EXIT="${DBT_COMPILE_EXIT:-0}"
 if [ "$DBT_COMPILE_EXIT" != "0" ]; then

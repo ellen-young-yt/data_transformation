@@ -82,6 +82,7 @@ class LintingManager:
         Args:
             fix: Attempt to fix issues automatically
             paths: Specific paths to lint (default: models, tests, macros)
+                  Can be specific files passed from pre-commit
 
         Returns:
             Exit code
@@ -100,15 +101,13 @@ class LintingManager:
                     raise FileNotFoundError("sqlfluff executable not found in PATH")
                 sqlfluff_executable = sqlfluff_path
 
-            # Default paths
-            if paths is None:
+            # Default paths if none provided (for manual runs)
+            if paths is None or len(paths) == 0:
                 paths = ["models/", "tests/", "macros/"]
 
             # Build command
             command = [sqlfluff_executable, action]
             command.extend(paths)
-            # Use dbt templater as configured in .sqlfluff
-            # command.extend(["--templater=raw"])
 
             # Execute command
             log_step(f"Running: {' '.join(command)}")

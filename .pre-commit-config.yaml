@@ -31,30 +31,6 @@ repos:
       - id: ruff-format
 
 
-  # SQL linting with SQLFluff
-  - repo: https://github.com/sqlfluff/sqlfluff
-    rev: 3.0.7
-    hooks:
-      - id: sqlfluff-lint
-        additional_dependencies:
-          [
-            "sqlfluff-templater-dbt",
-            "dbt-core==1.10.11",
-            "dbt-snowflake==1.10.2",
-          ]
-        files: '^models/.*\.sql$'
-        exclude: "^(dbt_packages/|target/|logs/|transform/)"
-      - id: sqlfluff-fix
-        additional_dependencies:
-          [
-            "sqlfluff-templater-dbt",
-            "dbt-core==1.10.11",
-            "dbt-snowflake==1.10.2",
-          ]
-        files: '^models/.*\.sql$'
-        exclude: "^(dbt_packages/|target/|logs/|transform/)"
-
-
   # Security checks
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.4.0
@@ -67,6 +43,16 @@ repos:
   # Local testing hooks
   - repo: local
     hooks:
+      # SQL linting and fixing with SQLFluff (uses raw templater for speed)
+      - id: sqlfluff-fix
+        name: sqlfluff fix
+        entry: python -m scripts.linting sqlfluff --fix
+        language: system
+        types: [sql]
+        files: '^models/.*\.sql$'
+        exclude: "^(dbt_packages/|target/|logs/|transform/)"
+        pass_filenames: true
+
       # dbt parsing/compilation check
       - id: dbt-parse
         name: dbt parse
@@ -97,7 +83,7 @@ ci:
   autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
   autoupdate_schedule: weekly
   # Skip hooks that require AWS credentials or are too slow for pre-commit.ci
-  skip: [dbt-parse]
+  skip: [dbt-parse, project-validation]
   submodules: false
 
 # Environment-specific configuration

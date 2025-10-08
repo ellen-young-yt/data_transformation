@@ -84,6 +84,19 @@ runs:
         ENVIRONMENT: ${{ inputs.environment }}
         USE_AWS_SECRETS: 'true' #pragma: allowlist secret
 
+    - name: Run SQLFluff with dbt templater (CI comprehensive check)
+      id: sqlfluff-dbt
+      shell: bash
+      run: |
+        set +e
+        bash ./.github/actions/quality-checks/scripts/run-sqlfluff-dbt.sh
+        echo "exit_code=$?" >> $GITHUB_OUTPUT
+        set -e
+      continue-on-error: true
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+        USE_AWS_SECRETS: 'true' #pragma: allowlist secret
+
     - name: Run enhanced security checks
       id: security
       shell: bash
@@ -120,6 +133,7 @@ runs:
       env:
         PRE_COMMIT_EXIT: ${{ steps.pre-commit.outputs.exit_code }}
         MAKE_LINT_EXIT: ${{ steps.pre-commit.outputs.make_lint_exit }}
+        SQLFLUFF_DBT_EXIT: ${{ steps.sqlfluff-dbt.outputs.exit_code }}
         DBT_COMPILE_EXIT: ${{ steps.dbt-analysis.outputs.compile_exit_code }}
       run: |
         bash ./.github/actions/quality-checks/scripts/check-results.sh
@@ -158,6 +172,7 @@ runs:
         QUALITY_SCORE: ${{ steps.calculate-score.outputs.score }}
         PRE_COMMIT_EXIT: ${{ steps.pre-commit.outputs.exit_code }}
         MAKE_LINT_EXIT: ${{ steps.pre-commit.outputs.make_lint_exit }}
+        SQLFLUFF_DBT_EXIT: ${{ steps.sqlfluff-dbt.outputs.exit_code }}
         DBT_COMPILE_EXIT: ${{ steps.dbt-analysis.outputs.compile_exit_code }}
       run: |
         bash ./.github/actions/quality-checks/scripts/generate-summary.sh
