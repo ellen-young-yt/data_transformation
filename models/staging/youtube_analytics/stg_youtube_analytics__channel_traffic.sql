@@ -35,6 +35,6 @@ select
         'country_code',
         'traffic_source_id',
         'traffic_source_detail_raw'
-    ]) }} as channel_end_screen_id,
+    ]) }} as channel_traffic_id,
     *
 from outputs

@@ -17,9 +17,9 @@ outputs as (
         total_reply_count as count_replies,
         _fivetran_synced,
         convert_timezone('America/Los_Angeles', snippet_published_at)
-            as comment_published_at,
+            as comment_published_at_pt,
         convert_timezone('America/Los_Angeles', snippet_updated_at)
-            as updated_at
+            as updated_at_pt
     from comment
 )
 
