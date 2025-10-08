@@ -26,6 +26,12 @@ models:
     +materialized: view
     +on_schema_change: "append_new_columns"
 
+    staging:
+      +schema: youtube
+
+    intermediate:
+      +schema: youtube
+
 # Configuring seeds
 seeds:
   data_transformation:
