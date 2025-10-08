@@ -1,0 +1,1845 @@
+version: 2
+
+models:
+  - name: stg_youtube_analytics__audience_retention
+    description: Staging model for YouTube audience retention metrics by video and date
+    columns:
+      - name: audience_retention_id
+        description: Surrogate key for audience retention records
+        data_type: varchar
+        tests:
+          - not_null
+      - name: video_id
+        description: YouTube video identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+      - name: calendar_date
+        description: Date (in Pacific time) of the retention metrics
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: percent_of_video_elapsed
+        description: Percentage of video elapsed at this measurement point
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0.01
+                max_value: 1.00
+                strictly: false
+      - name: percent_watch_ratio
+        description: Percentage of audience still watching at this point
+        data_type: number(18,4)
+        tests:
+          - not_null
+      - name: relative_retention_performance
+        description: Relative retention performance metric
+        data_type: number(18,4)
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+
+  - name: stg_youtube_analytics__caption
+    description: Staging model for YouTube video captions/subtitles
+    columns:
+      - name: caption_id
+        description: Surrogate key for caption records
+        data_type: varchar
+        tests:
+          - not_null
+      - name: video_id
+        description: YouTube video identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+      - name: languages
+        description: Language code for the caption
+        data_type: varchar
+        tests:
+          - not_null
+      - name: caption_text
+        description: Text content of the caption
+        data_type: varchar
+        tests:
+          - not_null
+      - name: start_time_seconds
+        description: Start time of caption in seconds
+        data_type: number(38,3)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: duration_seconds
+        description: Duration of caption display in seconds
+        data_type: number(38,3)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel
+    description: Staging model for YouTube channel information
+    columns:
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: title
+        description: Channel title
+        data_type: varchar
+        tests:
+          - not_null
+      - name: custom_url
+        description: Channel custom URL
+        data_type: varchar
+        tests:
+          - not_null
+      - name: description
+        description: Channel description
+        data_type: varchar
+        tests:
+          - not_null
+      - name: number_of_views
+        description: Total view count for the channel
+        data_type: number
+        tests:
+          - not_null
+      - name: number_of_subscribers
+        description: Total subscriber count
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: number_of_videos
+        description: Total number of videos published
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: thumbnails_json
+        description: JSON object containing channel thumbnail URLs
+        data_type: variant
+        tests:
+          - not_null
+      - name: topic_ids
+        description: Array of topic IDs associated with the channel
+        data_type: variant
+        tests:
+          - not_null
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel_basic
+    description: Staging model for basic channel-level YouTube analytics metrics
+    columns:
+      - name: channel_basic_id
+        description: Surrogate key for channel basic records
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_id
+        description: YouTube video identifier (nullable for channel-level metrics)
+        data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+              config:
+                severity: warn
+                warn_if: ">0"
+      - name: calendar_date
+        description: Date (in Pacific time) of the metric
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: country_code
+        description: ISO country code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('country_codes_lookup')
+                field: country_code
+      - name: live_or_on_demand
+        description: Content type (Live or On Demand)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Live', 'On Demand']
+              config:
+                alias: unexpected_live_on_demand_value
+      - name: subscribed_status
+        description: Viewer subscription status (Subscribed or Unsubscribed)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Subscribed', 'Not Subscribed', 'Unknown']
+              config:
+                alias: unexpected_subscription_status
+      - name: total_view_count
+        description: Total views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: like_count
+        description: Number of likes
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              severity: warn
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: dislike_count
+        description: Number of dislikes
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              severity: warn
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: subscriber_gain_count
+        description: New subscribers gained
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: subscribers_lost_count
+        description: Subscribers lost
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: total_watch_time_in_minutes
+        description: Total watch time in minutes
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: avg_view_duration_in_seconds
+        description: Average view duration in seconds
+        data_type: number(10,4)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: card_impressions
+        description: Number of card impressions
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: card_clicks
+        description: Number of card clicks
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: card_teaser_impressions
+        description: Number of card teaser impressions
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: card_teaser_clicks
+        description: Number of card teaser clicks
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: comment_count
+        description: Number of comments
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: share_count
+        description: Number of shares
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: videos_added_to_playlists
+        description: Videos added to playlists
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: videos_removed_from_playlists
+        description: Videos removed from playlists
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_view_count
+        description: YouTube Premium (Red) views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_watch_time_in_minutes
+        description: YouTube Premium watch time in minutes
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel_cards
+    description: Staging model for YouTube channel card interaction metrics
+    columns:
+      - name: channel_cards_id
+        description: Surrogate key for channel cards records
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_id
+        description: YouTube video identifier (nullable for channel-level metrics)
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+      - name: card_id
+        description: Card identifier
+        data_type: varchar
+        tests:
+          - not_null
+      - name: card_type
+        description: Type of card
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('card_types')
+                field: id
+              config:
+                severity: warn
+      - name: calendar_date
+        description: Date (in Pacific time) of the metrics
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: country_code
+        description: ISO country code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('country_codes_lookup')
+                field: country_code
+      - name: live_or_on_demand
+        description: Content type (Live or On Demand)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Live', 'On Demand']
+      - name: subscribed_status
+        description: Viewer subscription status (Subscribed or Unsubscribed)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Subscribed', 'Not Subscribed', 'Unknown']
+      - name: card_impressions
+        description: Number of card impressions
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: card_clicks
+        description: Number of card clicks
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: card_teaser_impressions
+        description: Number of card teaser impressions
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: card_teaser_clicks
+        description: Number of card teaser clicks
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel_combined
+    description: Staging model for combined YouTube channel analytics metrics
+    columns:
+      - name: channel_combined_id
+        description: Surrogate key for channel combined records
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_id
+        description: YouTube video identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+              config:
+                severity: warn
+      - name: calendar_date
+        description: Date of the metrics
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: country_code
+        description: ISO country code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('country_codes_lookup')
+                field: country_code
+      - name: live_or_on_demand
+        description: Content type (Live or On Demand)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Live', 'On Demand']
+      - name: subscribed_status
+        description: Viewer subscription status (Subscribed or Unsubscribed)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Subscribed', 'Not Subscribed', 'Unknown']
+      - name: playback_location_type_id
+        description: Type of playback location
+        data_type: number
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('playback_location_type')
+                field: id
+              config:
+                severity: warn
+      - name: traffic_source_type_id
+        description: Type of traffic source
+        data_type: number
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('traffic_source_lookup')
+                field: traffic_source_id
+              config:
+                severity: warn
+      - name: device_type_id
+        description: Device type identifier
+        data_type: number
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('device_type')
+                field: id
+              config:
+                severity: warn
+      - name: operating_system_id
+        description: Operating system identifier
+        data_type: number
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('operating_system')
+                field: id
+              config:
+                severity: warn
+      - name: view_count
+        description: Number of views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: watch_time_in_minutes
+        description: Watch time in minutes
+        data_type: number(18,4)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_in_seconds
+        description: Average view duration in seconds
+        data_type: number(18,4)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_percentage
+        description: Average view duration as percentage
+        data_type: number(18,4)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_view_count
+        description: YouTube Premium (Red) views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_view_watch_time_in_minutes
+        description: YouTube Premium watch time in minutes
+        data_type: number(18,4)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel_demographics
+    description: Staging model for YouTube channel demographics metrics
+    columns:
+      - name: channel_demographics_id
+        description: Surrogate key for channel demographics records
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_id
+        description: YouTube video identifier (nullable for channel-level metrics)
+        data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+              config:
+                severity: warn
+                warn_if: ">0"
+      - name: calendar_date
+        description: Date of the metrics
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: country_code
+        description: ISO country code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('country_codes_lookup')
+                field: country_code
+      - name: live_or_on_demand
+        description: Content type (Live or On Demand)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Live', 'On Demand']
+      - name: subscribed_status
+        description: Viewer subscription status (Subscribed or Unsubscribed)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Subscribed', 'Not Subscribed', 'Unknown']
+      - name: gender
+        description: Viewer gender (Male, Female, Other)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Male', 'Female', 'User Specified']
+              config:
+                severity: warn
+      - name: age_group
+        description: Viewer age group (A. 13-17, B. 18-24, C. 25-34, etc.)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['A. 13-17', 'B. 18-24', 'C. 25-34', 'D. 35-44', 'E. 45-54', 'F. 55-64', 'G. 65+']
+      - name: share_of_views_this_video_day
+        description: Percentage of views for this demographic segment
+        data_type: number(18,6)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel_device
+    description: Staging model for YouTube channel device and OS metrics
+    columns:
+      - name: channel_device_id
+        description: Surrogate key for channel device records
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_id
+        description: YouTube video identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+              config:
+                severity: warn
+      - name: calendar_date
+        description: Date of the metrics
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: country_code
+        description: ISO country code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('country_codes_lookup')
+                field: country_code
+      - name: live_or_on_demand
+        description: Content type (Live or On Demand)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Live', 'On Demand']
+      - name: subscribed_status
+        description: Viewer subscription status (Subscribed or Unsubscribed)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Subscribed', 'Not Subscribed', 'Unknown']
+      - name: device_type_id
+        description: Device type identifier
+        data_type: number
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('device_type')
+                field: id
+              config:
+                severity: warn
+      - name: operating_system_id
+        description: Operating system identifier
+        data_type: number
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('operating_system')
+                field: id
+              config:
+                severity: warn
+      - name: view_count
+        description: Number of views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: watch_time_in_minutes
+        description: Watch time in minutes
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_seconds
+        description: Average view duration in seconds
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_percentage
+        description: Average view duration as percentage
+        data_type: number(18,4)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_view_count
+        description: YouTube Premium (Red) views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_watch_time_in_minutes
+        description: YouTube Premium watch time in minutes
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel_end_screens
+    description: Staging model for YouTube channel end screen interaction metrics
+    columns:
+      - name: channel_end_screen_id
+        description: Surrogate key for channel end screen records
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_id
+        description: YouTube video identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+              config:
+                severity: warn
+      - name: calendar_date
+        description: Date of the metrics
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: country_code
+        description: ISO country code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('country_codes_lookup')
+                field: country_code
+      - name: live_or_on_demand
+        description: Content type (Live or On Demand)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Live', 'On Demand']
+      - name: subscribed_status
+        description: Viewer subscription status (Subscribed or Unsubscribed)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Subscribed', 'Not Subscribed', 'Unknown']
+      - name: end_screen_element_id
+        description: End screen element identifier
+        data_type: number(38,0)
+        tests:
+          - not_null
+      - name: end_screen_element_type_id
+        description: Type of end screen element
+        data_type: number
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('end_screen_element_type')
+                field: id
+              config:
+                severity: warn
+      - name: end_screen_element_clicks
+        description: Number of clicks on end screen element
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: end_screen_element_impressions
+        description: Number of impressions for end screen element
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: end_screen_element_click_rate
+        description: Click rate for end screen element
+        data_type: number(18,4)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel_playback_location
+    description: Staging model for YouTube channel playback location metrics
+    columns:
+      - name: channel_playback_location_id
+        description: Surrogate key for channel playback location records
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_id
+        description: YouTube video identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+              config:
+                severity: warn
+      - name: calendar_date
+        description: Date of the metrics
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: country_code
+        description: ISO country code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('country_codes_lookup')
+                field: country_code
+      - name: live_or_on_demand
+        description: Content type (Live or On Demand)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Live', 'On Demand']
+      - name: subscribed_status
+        description: Viewer subscription status (Subscribed or Unsubscribed)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Subscribed', 'Not Subscribed', 'Unknown']
+      - name: playback_location_type_id
+        description: Type of playback location
+        data_type: number
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('playback_location_type')
+                field: id
+              config:
+                severity: warn
+      - name: playback_location_detail
+        description: Detailed playback location information
+        data_type: varchar
+      - name: view_count
+        description: Number of views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: watch_time_in_minutes
+        description: Watch time in minutes
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_in_seconds
+        description: Average view duration in seconds
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_percentage
+        description: Average view duration as percentage
+        data_type: number(18,4)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_view_count
+        description: YouTube Premium (Red) views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_watch_time_in_minutes
+        description: YouTube Premium watch time in minutes
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel_province
+    description: Staging model for YouTube channel province-level metrics
+    columns:
+      - name: channel_province_id
+        description: Surrogate key for channel province records
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_id
+        description: YouTube video identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+              config:
+                severity: warn
+      - name: calendar_date
+        description: Date of the metrics
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: country_code
+        description: ISO country code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('country_codes_lookup')
+                field: country_code
+      - name: province_code
+        description: Province/state code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('province_codes')
+                field: code
+      - name: live_or_on_demand
+        description: Content type (Live or On Demand)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Live', 'On Demand']
+      - name: subscribed_status
+        description: Viewer subscription status (Subscribed or Unsubscribed)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Subscribed', 'Not Subscribed', 'Unknown']
+      - name: view_count
+        description: Number of views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: watch_time_in_minutes
+        description: Watch time in minutes
+        data_type: number(18,4)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_in_seconds
+        description: Average view duration in seconds
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_percentage
+        description: Average view duration as percentage
+        data_type: number(18,4)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel_sharing_service
+    description: Staging model for YouTube channel sharing service metrics
+    columns:
+      - name: channel_sharing_service_id
+        description: Surrogate key for channel sharing service records
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_id
+        description: YouTube video identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+              config:
+                severity: warn
+      - name: calendar_date
+        description: Date of the metrics
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: country_code
+        description: ISO country code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('country_codes_lookup')
+                field: country_code
+      - name: live_or_on_demand
+        description: Content type (Live or On Demand)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Live', 'On Demand']
+      - name: subscribed_status
+        description: Viewer subscription status (Subscribed or Unsubscribed)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Subscribed', 'Not Subscribed', 'Unknown']
+      - name: sharing_service_id
+        description: Sharing service identifier
+        data_type: number
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('sharing_service')
+                field: id
+              config:
+                severity: warn
+      - name: share_count
+        description: Number of shares
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel_subtitles
+    description: Staging model for YouTube channel subtitle/caption metrics
+    columns:
+      - name: channel_subtitles_id
+        description: Surrogate key for channel subtitles records
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_id
+        description: YouTube video identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+              config:
+                severity: warn
+      - name: calendar_date
+        description: Date of the metrics
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: country_code
+        description: ISO country code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('country_codes_lookup')
+                field: country_code
+      - name: live_or_on_demand
+        description: Content type (Live or On Demand)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Live', 'On Demand']
+      - name: subscribed_status
+        description: Viewer subscription status (Subscribed or Unsubscribed)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Subscribed', 'Not Subscribed', 'Unknown']
+      - name: subtitle_language
+        description: Subtitle language code (nullable)
+        data_type: varchar
+      - name: subtitle_language_autotranslated
+        description: Auto-translated subtitle language code (nullable)
+        data_type: varchar
+      - name: view_count
+        description: Number of views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: watch_time_in_minutes
+        description: Watch time in minutes
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_in_seconds
+        description: Average view duration in seconds
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_percentage
+        description: Average view duration as percentage
+        data_type: number(18,4)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_view_count
+        description: YouTube Premium (Red) views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_watch_time_in_minutes
+        description: YouTube Premium watch time in minutes
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__channel_traffic
+    description: Staging model for YouTube channel traffic source metrics
+    columns:
+      - name: channel_traffic_id
+        description: Surrogate key for channel traffic records
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_id
+        description: YouTube video identifier (nullable for channel-level metrics)
+        data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+              config:
+                severity: warn
+                warn_if: ">0"
+      - name: calendar_date
+        description: Date of the metrics
+        data_type: date
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: date('2024-10-31')
+                strictly: false
+      - name: country_code
+        description: ISO country code
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('country_codes_lookup')
+                field: country_code
+      - name: live_or_on_demand
+        description: Content type (Live or On Demand)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Live', 'On Demand']
+      - name: subscribed_status
+        description: Viewer subscription status (Subscribed or Unsubscribed)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Subscribed', 'Not Subscribed', 'Unknown']
+      - name: traffic_source_id
+        description: Traffic source type identifier
+        data_type: number
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('traffic_source_lookup')
+                field: traffic_source_id
+              config:
+                severity: warn
+      - name: traffic_source_detail_raw
+        description: Detailed traffic source information (nullable)
+        data_type: varchar
+      - name: view_count
+        description: Number of views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: watch_time_in_minutes
+        description: Watch time in minutes
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_in_seconds
+        description: Average view duration in seconds
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: average_view_duration_percentage
+        description: Average view duration as percentage
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_view_count
+        description: YouTube Premium (Red) views
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: red_watch_time_in_minutes
+        description: YouTube Premium watch time in minutes
+        data_type: number(18,2)
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__comment
+    description: Staging model for YouTube video comments
+    columns:
+      - name: comment_id
+        description: YouTube comment identifier
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: video_id
+        description: YouTube video identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__video')
+                field: video_id
+      - name: comment_text
+        description: Text content of the comment
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: is_public
+        description: Whether the comment is public
+        data_type: boolean
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: commenter_display_name
+        description: Display name of the commenter
+        data_type: varchar
+        tests:
+          - not_null
+      - name: commenter_channel_url
+        description: URL of the commenter's channel
+        data_type: varchar
+        tests:
+          - not_null
+      - name: parent_comment_id
+        description: Parent comment ID for replies
+        data_type: varchar
+      - name: moderation_status
+        description: Comment moderation status
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: count_likes
+        description: Number of likes on the comment
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: count_replies
+        description: Number of replies to the comment
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: warn
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: comment_published_at
+        description: Timestamp when comment was published (PT timezone)
+        data_type: timestamp_tz
+      - name: updated_at
+        description: Timestamp when comment was last updated (PT timezone)
+        data_type: timestamp_tz
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
+
+  - name: stg_youtube_analytics__video
+    description: Staging model for YouTube video metadata and statistics
+    columns:
+      - name: video_id
+        description: YouTube video identifier
+        data_type: varchar
+        tests:
+          - unique
+          - not_null
+      - name: channel_id
+        description: YouTube channel identifier
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_youtube_analytics__channel')
+                field: channel_id
+      - name: video_title
+        description: Title of the video
+        data_type: varchar
+        tests:
+          - not_null
+      - name: video_description
+        description: Description of the video (nullable)
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: published_at_pt
+        description: Video publish timestamp (Pacific Time)
+        data_type: timestamp_tz
+        tests:
+          - not_null
+      - name: video_duration_in_seconds
+        description: Duration of the video in seconds
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: category_id
+        description: YouTube category ID
+        data_type: number
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('category_id_lookup')
+                field: category_id
+      - name: privacy_status
+        description: Privacy status of the video (Public, Private, Unlisted)
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Public', 'Private', 'Unlisted']
+              config:
+                severity: warn
+      - name: has_custom_thumbnail
+        description: Whether video has a custom thumbnail
+        data_type: boolean
+        tests:
+          - not_null
+      - name: view_count
+        description: Total view count
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: like_count
+        description: Total like count
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: dislike_count
+        description: Total dislike count
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: comment_count
+        description: Total comment count
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: favorite_count
+        description: Total favorite count
+        data_type: number
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+      - name: video_thumbnail_json
+        description: JSON object containing video thumbnail URLs
+        data_type: variant
+        tests:
+          - not_null
+      - name: _fivetran_synced
+        description: Timestamp when Fivetran last synced this record
+        data_type: timestamp_ntz
+        tests:
+          - not_null
