@@ -27,16 +27,28 @@ models:
     +on_schema_change: "append_new_columns"
 
     staging:
-      +schema: youtube
+      +database: staging
+
+      youtube_analytics:
+        +schema: youtube
+      google_ads:
+        +schema: google_ads
 
     intermediate:
+      +database: intermediate
       +schema: youtube
+
+    marts:
+      +database: curated
+      +schema: youtube
+      +materialized: table
+      +on_schema_change: "fail"
 
 # Configuring seeds
 seeds:
   data_transformation:
-    +database: staging
-    +schema: manual
+    +database: manual
+    +schema: youtube_lookups
 
 # Configuring packages
 packages-install-path: "dbt_packages"
