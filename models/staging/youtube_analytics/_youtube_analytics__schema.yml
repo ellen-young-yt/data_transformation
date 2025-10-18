@@ -993,7 +993,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('end_screen_element_type')
+                to: ref('end_screen_element_types')
                 field: id
               config:
                 severity: warn
@@ -1351,7 +1351,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('sharing_service')
+                to: ref('sharing_services')
                 field: id
               config:
                 severity: warn
