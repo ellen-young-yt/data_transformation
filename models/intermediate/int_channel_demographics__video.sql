@@ -3,25 +3,27 @@ with channel_demographics as (
     from {{ ref("int_channel_demographics") }}
 ),
 
-channel_basic as (
+videos as (
     select *
-    from {{ ref("int_channel_basic") }}
-),
-
-views_by_video_day as (
-    select
-        video_id,
-        calendar_date,
-        sum(total_view_count) as total_view_count
-    from channel_basic
-    group by all
+    from {{ ref('int_video') }}
 ),
 
 all_data as (
     select
         cd.channel_demographics_id,
+
+        -- Video attributes
         cd.channel_id,
         cd.video_id,
+        v.video_title,
+        v.category_name,
+        v.video_duration_in_seconds,
+        v.video_duration_in_minutes,
+        v.video_thumbnail_url,
+        v.video_number_asc,
+        v.video_number_desc,
+
+        -- Demographic attributes of viewers by day
         cd.calendar_date,
         cd.live_or_on_demand,
         cd.subscribed_status,
@@ -29,17 +31,15 @@ all_data as (
         cd.country_name,
         cd.gender,
         cd.age_group,
-        cd.share_of_views_this_video_day,
-        vvd.total_view_count as total_view_count_this_video_day,
+        cd.share_of_views_this_video_day
 
-        -- This field attempts to translate view share into a count by multiplying by the total number of views for that video that day
-        -- It should be taken as an estimate because the data doesn't tie perfectly across tables
-        (cd.share_of_views_this_video_day * total_view_count_this_video_day)::dec(18, 2)
-            as view_count_estimated
     from channel_demographics as cd
-    left join views_by_video_day
-        as vvd on cd.video_id = vvd.video_id
-    and cd.calendar_date = vvd.calendar_date
+    left join videos as v
+        on cd.video_id = v.video_id
+
+    -- Exclude records that don't tie to a video (likely delete and reuploads)
+    -- For clarity, this condition was written explicitly instead of inner joining to videos
+    where v.video_id is not null
 )
 
 select *
