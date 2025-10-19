@@ -16,6 +16,8 @@ all_data as (
         v.video_title,
         v.published_at_pt as video_published_at_pt,
         v.category_name as video_category,
+        v.video_number_asc,
+        v.video_number_desc,
         cc.calendar_date,
         cc.country_code,
         cc.country_name,

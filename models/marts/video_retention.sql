@@ -17,6 +17,8 @@ summarized_by_video_and_timestamp as (
         ar.video_category,
         ar.video_thumbnail_url,
         ar.video_duration_in_seconds,
+        dvv.video_number_asc,
+        dvv.video_number_desc,
 
         -- Timestamp dimensions
         ar.percent_of_video_elapsed,

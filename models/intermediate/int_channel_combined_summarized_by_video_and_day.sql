@@ -5,10 +5,15 @@ with channel_combined as (
 
 summarized_by_video_and_day as (
     select
+        -- Video dimensions
         video_id,
         video_title,
         video_published_at_pt,
         video_published_at_pt::date as video_upload_date,
+        video_number_asc,
+        video_number_desc,
+
+        -- Date of events
         calendar_date,
 
         /* VIEW COUNTS */

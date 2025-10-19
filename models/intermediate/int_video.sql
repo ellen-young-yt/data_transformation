@@ -38,7 +38,9 @@ all_data as (
         v.like_count,
         v.dislike_count,
         v.comment_count,
-        v.favorite_count
+        v.favorite_count,
+        rank() over (order by v.published_at_pt asc) as video_number_asc,
+        rank() over (order by v.published_at_pt desc) as video_number_desc
     from video_w_thumbnail_url as v
     left join {{ ref("category_id_lookup") }} as cat on v.category_id = cat.category_id
 )
