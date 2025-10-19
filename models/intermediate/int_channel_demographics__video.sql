@@ -16,6 +16,7 @@ all_data as (
         cd.channel_id,
         cd.video_id,
         v.video_title,
+        v.published_at_pt as video_uploaded_at_pt,
         v.category_name,
         v.video_duration_in_seconds,
         v.video_duration_in_minutes,
