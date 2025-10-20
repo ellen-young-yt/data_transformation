@@ -9,7 +9,7 @@ country_code as (
 ),
 
 all_data as (
-    select
+    select -- noqa: ST06
         cd.channel_demographics_id,
         cd.channel_id,
         cd.video_id,
@@ -18,6 +18,12 @@ all_data as (
         cd.subscribed_status,
         cd.country_code,
         cc.country_name,
+        case
+            when cc.country_name = 'United States of America' then 'United States'
+            when cc.country_name = 'Korea, Republic of' then 'South Korea'
+            -- TODO: Add regional identifiers to the countries seed and use them in place of "Other"
+            else 'Other'
+        end as country_grouped,
         cd.gender,
         cd.age_group,
         cd.share_of_views_this_video_day

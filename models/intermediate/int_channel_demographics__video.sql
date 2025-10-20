@@ -30,6 +30,7 @@ all_data as (
         cd.subscribed_status,
         cd.country_code,
         cd.country_name,
+        cd.country_grouped,
         cd.gender,
         cd.age_group,
         cd.share_of_views_this_video_day

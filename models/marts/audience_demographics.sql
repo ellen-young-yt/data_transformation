@@ -28,6 +28,7 @@ all_data as (
         cd.live_or_on_demand,
         cd.subscribed_status,
         cd.country_code,
+        cd.country_grouped,
         cd.country_name,
         cd.gender,
         cd.age_group,
