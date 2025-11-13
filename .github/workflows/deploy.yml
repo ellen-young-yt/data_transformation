@@ -191,7 +191,7 @@ jobs:
             --region $AWS_REGION)
 
           # Get the secret ARN for this environment
-          SECRET_ARN="arn:aws:secretsmanager:us-east-2:891612547191:secret:ellen-young-yt/${ENVIRONMENT}/snowflake/dbt-credentials"  # pragma: allowlist secret
+          SECRET_ARN="arn:aws:secretsmanager:us-east-2:891612547191:secret:ellen-young-yt/${ENVIRONMENT}/snowflake/dbt-credentials" #pragma: allowlist secret
 
           # Extract and update the task definition with new image and proper secret mapping
           NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "$IMAGE_URI" --arg SECRET_ARN "$SECRET_ARN" \

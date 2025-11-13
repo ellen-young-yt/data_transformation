@@ -319,15 +319,15 @@ class EnvironmentManager:
 
         if self.environment == Environment.DEV:
             base_config["secret_name"] = (
-                "ellen-young-yt/dev/snowflake/credentials"  # pragma: allowlist secret  # nosec
+                "ellen-young-yt/dev/snowflake/dbt-credentials"  # pragma: allowlist secret  # nosec
             )
         elif self.environment == Environment.STAGING:
             base_config["secret_name"] = (
-                "ellen-young-yt/staging/snowflake/credentials"  # pragma: allowlist secret  # nosec
+                "ellen-young-yt/staging/snowflake/dbt-credentials"  # pragma: allowlist secret  # nosec
             )
         elif self.environment == Environment.PROD:
             base_config["secret_name"] = (
-                "ellen-young-yt/prod/snowflake/credentials"  # pragma: allowlist secret  # nosec
+                "ellen-young-yt/prod/snowflake/dbt-credentials"  # pragma: allowlist secret  # nosec
             )
 
         return base_config
