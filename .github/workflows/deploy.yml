@@ -190,10 +190,22 @@ jobs:
             --task-definition $TASK_FAMILY \
             --region $AWS_REGION)
 
-          # Extract and update the task definition with new image
-          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "$IMAGE_URI" \
+          # Get the secret ARN for this environment
+          SECRET_ARN="arn:aws:secretsmanager:us-east-2:891612547191:secret:ellen-young-yt/${ENVIRONMENT}/snowflake/dbt-credentials"
+
+          # Extract and update the task definition with new image and proper secret mapping
+          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "$IMAGE_URI" --arg SECRET_ARN "$SECRET_ARN" \
             '.taskDefinition |
             .containerDefinitions[0].image = $IMAGE |
+            .containerDefinitions[0].secrets = [
+              {name: "SNOWFLAKE_ACCOUNT", valueFrom: ($SECRET_ARN + ":account::")},
+              {name: "SNOWFLAKE_USER", valueFrom: ($SECRET_ARN + ":user::")},
+              {name: "SNOWFLAKE_ROLE", valueFrom: ($SECRET_ARN + ":role::")},
+              {name: "SNOWFLAKE_DATABASE", valueFrom: ($SECRET_ARN + ":database::")},
+              {name: "SNOWFLAKE_WAREHOUSE", valueFrom: ($SECRET_ARN + ":warehouse::")},
+              {name: "SNOWFLAKE_SCHEMA", valueFrom: ($SECRET_ARN + ":schema::")},
+              {name: "SNOWFLAKE_PRIVATE_KEY", valueFrom: ($SECRET_ARN + ":private_key::")}
+            ] |
             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
 
           # Register new task definition revision
