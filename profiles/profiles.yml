@@ -4,9 +4,10 @@ data_transformation:
     dev:
       type: snowflake
       account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
-      user: "{{ env_var('SNOWFLAKE_USER') }}"
-      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
-      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
+      user: "{{ env_var('SNOWFLAKE_USER', 'DBT_USER') }}"
+      private_key: "{{ env_var('SNOWFLAKE_PRIVATE_KEY') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'DBT_ROLE') }}"
       database: "{{ env_var('SNOWFLAKE_DATABASE', 'DEV_DATABASE') }}"
       warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'DEV_WAREHOUSE') }}"
       schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'DEV_SCHEMA') }}"
@@ -14,25 +15,27 @@ data_transformation:
       client_session_keep_alive: False
       query_tag: "dbt_dev"
 
-    test:
+    staging:
       type: snowflake
       account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
-      user: "{{ env_var('SNOWFLAKE_USER') }}"
-      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
-      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
-      database: "{{ env_var('SNOWFLAKE_DATABASE', 'TEST_DATABASE') }}"
-      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'TEST_WAREHOUSE') }}"
-      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'TEST_SCHEMA') }}"
+      user: "{{ env_var('SNOWFLAKE_USER', 'DBT_USER') }}"
+      private_key: "{{ env_var('SNOWFLAKE_PRIVATE_KEY') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'DBT_ROLE') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'STAGING_DATABASE') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'STAGING_WAREHOUSE') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'STAGING_SCHEMA') }}"
       threads: 2
       client_session_keep_alive: False
-      query_tag: "dbt_test"
+      query_tag: "dbt_staging"
 
     prod:
       type: snowflake
       account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
-      user: "{{ env_var('SNOWFLAKE_USER') }}"
-      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
-      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
+      user: "{{ env_var('SNOWFLAKE_USER', 'DBT_USER') }}"
+      private_key: "{{ env_var('SNOWFLAKE_PRIVATE_KEY') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'DBT_ROLE') }}"
       database: "{{ env_var('SNOWFLAKE_DATABASE', 'PROD_DATABASE') }}"
       warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'PROD_WAREHOUSE') }}"
       schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'PROD_SCHEMA') }}"

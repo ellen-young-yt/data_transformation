@@ -1,0 +1,130 @@
+# =============================================================================
+# SQLFluff Configuration for CI Pipeline (dbt templater)
+# =============================================================================
+# This file is identical to .sqlfluff except for the following differences:
+#   1. templater = dbt (instead of raw)
+#   2. exclude_rules = LT02 (RF01 not excluded - dbt can validate references)
+#   3. Added [sqlfluff:templater:dbt] section
+#
+# IMPORTANT: When updating SQL rules, update BOTH .sqlfluff and .sqlfluff.dbt
+# =============================================================================
+
+[sqlfluff]
+dialect = snowflake
+templater = dbt
+runaway_limit = 10
+max_line_length = 120
+indent_unit = space
+tab_space_size = 4
+large_file_skip_byte_limit = 40000
+# Exclude LT02 (indentation in templates) - dbt handles this
+# Note: RF01 NOT excluded here - dbt templater can validate references
+exclude_rules = LT02
+ignore = parsing
+
+[sqlfluff:indentation]
+tab_space_size = 4
+indent_unit = space
+indented_joins = False
+indented_ctes = False
+indented_using_on = True
+template_blocks_indent = True
+
+[sqlfluff:layout:type:comma]
+spacing_before = touch
+line_position = trailing
+
+[sqlfluff:layout:type:binary_operator]
+spacing_within = single
+
+[sqlfluff:layout:type:statement_terminator]
+spacing_before = touch
+
+[sqlfluff:layout:type:end_of_file]
+spacing_before = touch
+
+[sqlfluff:rules]
+single_table_references = consistent
+unquoted_identifiers_policy = all
+
+[sqlfluff:rules:capitalisation.keywords]
+# Keywords should be consistently lower case
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.identifiers]
+# Unquoted identifiers should be consistently lower case
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:layout.long_lines]
+# Line endings should be consistent
+ignore_comment_lines = True
+
+[sqlfluff:rules:capitalisation.functions]
+# Function names should be consistently upper or lower case
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.literals]
+# Null & Boolean literals should be consistently upper or lower case
+capitalisation_policy = lower
+
+[sqlfluff:rules:structure.subquery]
+# Forbid subqueries in joins
+forbid_subquery_in = join
+
+[sqlfluff:rules:convention.count_rows]
+# Consistent table alias styles
+prefer_count_1 = False
+
+[sqlfluff:rules:convention.terminator]
+# Semi-colon formatting approach
+multiline_newline = True
+require_final_semicolon = False
+
+[sqlfluff:rules:ambiguous.column_references]
+# GROUP BY/ORDER BY column references
+group_by_and_order_by_style = consistent
+
+[sqlfluff:rules:aliasing.table]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.column]
+aliasing = explicit
+
+[sqlfluff:rules:aliasing.expression]
+allow_scalar = False
+
+[sqlfluff:rules:references.special_chars]
+# Special characters in identifiers
+quoted_identifiers_policy = none
+unquoted_identifiers_policy = all
+
+[sqlfluff:rules:references.quoting]
+# Policy on quoted and unquoted identifiers
+prefer_quoted_identifiers = False
+
+[sqlfluff:rules:capitalisation.types]
+# Data types should be consistently upper or lower case
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:convention.quoted_literals]
+# Consistent usage of preferred quotes for quoted literals
+preferred_quoted_literal_style = single_quotes
+
+# dbt templater configuration
+[sqlfluff:templater:dbt]
+project_dir = .
+profiles_dir = ./profiles
+profile = data_transformation
+target = dev
+
+[sqlfluff:rules:layout.select_targets]
+# Select targets should be on a new line unless there is only one select target
+wildcard_policy = single
+
+[sqlfluff:rules:layout.spacing]
+# Unnecessary whitespace found
+touch_whitespace = False
+
+[sqlfluff:rules:ambiguous.join]
+# INNER JOIN should be fully qualified
+fully_qualify_join_types = inner

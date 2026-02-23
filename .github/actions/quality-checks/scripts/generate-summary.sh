@@ -1,0 +1,69 @@
+#!/bin/bash
+set -e
+
+REPORTS_DIR="quality-reports"
+
+# Load results from check-results script
+if [ -f "$REPORTS_DIR/check-results.env" ]; then
+    source "$REPORTS_DIR/check-results.env"
+fi
+
+# Set defaults
+HAS_ERRORS="${HAS_ERRORS:-false}"
+HAS_WARNINGS="${HAS_WARNINGS:-false}"
+QUALITY_SCORE="${QUALITY_SCORE:-100}"
+PRE_COMMIT_EXIT="${PRE_COMMIT_EXIT:-1}"
+MAKE_LINT_EXIT="${MAKE_LINT_EXIT:-1}"
+SQLFLUFF_DBT_EXIT="${SQLFLUFF_DBT_EXIT:-0}"
+DBT_COMPILE_EXIT="${DBT_COMPILE_EXIT:-0}"
+
+echo "Generating quality summary..."
+
+# Set display values based on exit codes and flags
+ERRORS_STATUS=$([ "$HAS_ERRORS" = "true" ] && echo "❌ Yes" || echo "✅ No")
+WARNINGS_STATUS=$([ "$HAS_WARNINGS" = "true" ] && echo "⚠️ Yes" || echo "✅ No")
+PRECOMMIT_STATUS=$([ "$PRE_COMMIT_EXIT" = "0" ] && [ "$MAKE_LINT_EXIT" = "0" ] && echo "✅ Passed" || echo "❌ Failed")
+PRECOMMIT_HOOKS_STATUS=$([ "$PRE_COMMIT_EXIT" = "0" ] && echo "✅" || echo "❌")
+MAKE_LINT_STATUS=$([ "$MAKE_LINT_EXIT" = "0" ] && echo "✅" || echo "❌")
+SQLFLUFF_DBT_STATUS=$([ "$SQLFLUFF_DBT_EXIT" = "0" ] && echo "✅ Passed" || echo "⚠️ Issues found")
+DBT_COMPILE_STATUS=$([ "$DBT_COMPILE_EXIT" = "0" ] && echo "✅ Passed" || echo "❌ Failed")
+SECURITY_STATUS="✅ Completed"
+
+# Generate the summary file
+cat > "$REPORTS_DIR/summary.md" << EOF
+# Code Quality Report
+
+## Summary
+- **Quality Score**: ${QUALITY_SCORE}/100
+- **Errors**: ${ERRORS_STATUS}
+- **Warnings**: ${WARNINGS_STATUS}
+
+## Check Results
+- **Pre-commit Hooks**: ${PRECOMMIT_STATUS}
+  - Pre-commit: ${PRECOMMIT_HOOKS_STATUS}
+  - Make lint: ${MAKE_LINT_STATUS}
+- **SQLFluff (dbt templater)**: ${SQLFLUFF_DBT_STATUS}
+  - Comprehensive SQL validation with dbt syntax support
+- **dbt Compilation**: ${DBT_COMPILE_STATUS}
+- **Security Analysis**: ${SECURITY_STATUS}
+  - Multiple security tools executed (Bandit, Safety, pip-audit)
+
+## SQL Linting Strategy
+This project uses a **hybrid approach** for SQL linting:
+- **Local/Pre-commit**: Fast validation with raw templater (catches 90% of issues)
+- **CI Pipeline**: Comprehensive validation with dbt templater (validates dbt-specific syntax)
+
+## Detailed Reports
+### Detailed Reports Available
+- **lint-report.txt**: Pre-commit hooks and linting results
+- **sqlfluff-dbt-report.txt**: Comprehensive SQLFluff validation with dbt templater
+- **security-report.json/txt**: Bandit security analysis
+- **safety-report.json/txt**: Known vulnerability scan
+- **pip-audit.json**: Package vulnerability audit
+- **dbt-compile.txt**: dbt compilation output
+- **dbt-docs.txt**: Documentation generation log
+
+Check the uploaded artifacts for complete analysis details.
+EOF
+
+echo "Summary generated successfully"

@@ -1,0 +1,1475 @@
+version: 2
+
+sources:
+  - name: google_ads__sources
+    description: ""
+    database: raw
+    schema: google_ads
+    tables:
+      - name: account_history
+        description: ""
+        columns:
+          - name: id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: manager_customer_id
+            data_type: number
+          - name: auto_tagging_enabled
+            data_type: boolean
+          - name: currency_code
+            data_type: varchar
+          - name: descriptive_name
+            data_type: varchar
+          - name: final_url_suffix
+            data_type: varchar
+          - name: hidden
+            data_type: boolean
+          - name: manager
+            data_type: boolean
+          - name: optimization_score
+            data_type: float
+          - name: pay_per_conversion_eligibility_failure_reasons
+            data_type: varchar
+          - name: test_account
+            data_type: boolean
+          - name: time_zone
+            data_type: varchar
+          - name: tracking_url_template
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: account_hourly_stats
+        description: ""
+        columns:
+          - name: click_type
+            data_type: varchar
+          - name: conversions
+            data_type: float
+          - name: month
+            data_type: date
+          - name: interactions
+            data_type: number
+          - name: average_cpm
+            data_type: float
+          - name: year
+            data_type: number
+          - name: interaction_event_types
+            data_type: varchar
+          - name: device
+            data_type: varchar
+          - name: week
+            data_type: date
+          - name: active_view_impressions
+            data_type: number
+          - name: clicks
+            data_type: number
+          - name: active_view_measurable_impressions
+            data_type: number
+          - name: quarter
+            data_type: date
+          - name: day_of_week
+            data_type: varchar
+          - name: cost_per_conversion
+            data_type: float
+          - name: active_view_measurability
+            data_type: float
+          - name: average_cpc
+            data_type: float
+          - name: ctr
+            data_type: float
+          - name: conversions_value
+            data_type: float
+          - name: average_cost
+            data_type: float
+          - name: ad_network_type
+            data_type: varchar
+          - name: interaction_rate
+            data_type: float
+          - name: impressions
+            data_type: number
+          - name: active_view_viewability
+            data_type: float
+          - name: customer_id
+            data_type: number
+          - name: value_per_conversion
+            data_type: float
+          - name: hour
+            data_type: number
+          - name: active_view_cpm
+            data_type: float
+          - name: active_view_ctr
+            data_type: float
+          - name: active_view_measurable_cost_micros
+            data_type: number
+          - name: conversions_from_interactions_rate
+            data_type: float
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: account_stats
+        description: ""
+        columns:
+          - name: conversions_value
+            data_type: float
+          - name: conversions
+            data_type: float
+          - name: interactions
+            data_type: number
+          - name: ad_network_type
+            data_type: varchar
+          - name: interaction_event_types
+            data_type: varchar
+          - name: impressions
+            data_type: number
+          - name: view_through_conversions
+            data_type: number
+          - name: device
+            data_type: varchar
+          - name: active_view_viewability
+            data_type: float
+          - name: active_view_impressions
+            data_type: number
+          - name: clicks
+            data_type: number
+          - name: customer_id
+            data_type: number
+          - name: active_view_measurable_impressions
+            data_type: number
+          - name: active_view_measurable_cost_micros
+            data_type: number
+          - name: active_view_measurability
+            data_type: float
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: ad_group_bid_modifier_history
+        description: ""
+        columns:
+          - name: ad_group_id
+            data_type: number
+          - name: criterion_id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: base_ad_group
+            data_type: varchar
+          - name: bid_modifier
+            data_type: float
+          - name: bid_modifier_source
+            data_type: varchar
+          - name: device_type
+            data_type: varchar
+          - name: hotel_advance_booking_window_max_days
+            data_type: number
+          - name: hotel_advance_booking_window_min_days
+            data_type: number
+          - name: hotel_check_in_date_range_end_date
+            data_type: varchar
+          - name: hotel_check_in_date_range_start_date
+            data_type: varchar
+          - name: hotel_check_in_day_day_of_week
+            data_type: varchar
+          - name: hotel_date_selection_type
+            data_type: varchar
+          - name: hotel_length_of_stay_max_nights
+            data_type: number
+          - name: hotel_length_of_stay_min_nights
+            data_type: number
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: ad_group_bidding_strategy_history
+        description: ""
+        columns:
+          - name: ad_group_id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: cpc_bid_micros
+            data_type: number
+          - name: cpm_bid_micros
+            data_type: number
+          - name: cpv_bid_micros
+            data_type: number
+          - name: effective_target_cpa_micros
+            data_type: number
+          - name: effective_target_cpa_source
+            data_type: varchar
+          - name: effective_target_roas
+            data_type: float
+          - name: effective_target_roas_source
+            data_type: varchar
+          - name: percent_cpc_bid_micros
+            data_type: number
+          - name: target_cpa_micros
+            data_type: number
+          - name: target_cpm_micros
+            data_type: number
+          - name: target_roas
+            data_type: float
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: ad_group_criterion_history
+        description: ""
+        columns:
+          - name: ad_group_id
+            data_type: number
+          - name: id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: user_interest_id
+            data_type: number
+          - name: user_list_id
+            data_type: number
+          - name: age_range_type
+            data_type: varchar
+          - name: app_payment_model_type
+            data_type: varchar
+          - name: approval_status
+            data_type: varchar
+          - name: bid_modifier
+            data_type: float
+          - name: cpc_bid_micros
+            data_type: number
+          - name: cpm_bid_micros
+            data_type: number
+          - name: cpv_bid_micros
+            data_type: number
+          - name: custom_affinity_id
+            data_type: number
+          - name: custom_audience_id
+            data_type: number
+          - name: custom_intent_id
+            data_type: number
+          - name: disapproval_reasons
+            data_type: varchar
+          - name: display_name
+            data_type: varchar
+          - name: final_mobile_urls
+            data_type: varchar
+          - name: final_urls
+            data_type: varchar
+          - name: final_url_suffix
+            data_type: varchar
+          - name: first_page_cpc_micros
+            data_type: number
+          - name: first_position_cpc_micros
+            data_type: number
+          - name: gender_type
+            data_type: varchar
+          - name: income_range_type
+            data_type: varchar
+          - name: keyword_match_type
+            data_type: varchar
+          - name: keyword_text
+            data_type: varchar
+          - name: mobile_app_category_constant_id
+            data_type: number
+          - name: mobile_app_category_constant_name
+            data_type: varchar
+          - name: mobile_application_app_id
+            data_type: varchar
+          - name: mobile_application_name
+            data_type: varchar
+          - name: negative
+            data_type: boolean
+          - name: parent_ad_group_criterion_id
+            data_type: number
+          - name: parental_status_type
+            data_type: varchar
+          - name: placement_url
+            data_type: varchar
+          - name: quality_info_score
+            data_type: number
+          - name: quality_info_creative_score
+            data_type: varchar
+          - name: quality_info_post_click_score
+            data_type: varchar
+          - name: quality_info_search_predicted_ctr
+            data_type: varchar
+          - name: status
+            data_type: varchar
+          - name: system_serving_status
+            data_type: varchar
+          - name: top_of_page_cpc_micros
+            data_type: number
+          - name: topic_constant_id
+            data_type: number
+          - name: tracking_url_template
+            data_type: varchar
+          - name: type
+            data_type: varchar
+          - name: webpage_conditions
+            data_type: varchar
+          - name: youtube_channel_id
+            data_type: varchar
+          - name: youtube_video_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: ad_group_history
+        description: ""
+        columns:
+          - name: id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: campaign_id
+            data_type: number
+          - name: base_ad_group_id
+            data_type: number
+          - name: ad_rotation_mode
+            data_type: varchar
+          - name: campaign_name
+            data_type: varchar
+          - name: display_custom_bid_dimension
+            data_type: varchar
+          - name: explorer_auto_optimizer_setting_opt_in
+            data_type: boolean
+          - name: final_url_suffix
+            data_type: varchar
+          - name: name
+            data_type: varchar
+          - name: status
+            data_type: varchar
+          - name: target_restrictions
+            data_type: varchar
+          - name: tracking_url_template
+            data_type: varchar
+          - name: type
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: ad_group_hourly_stats
+        description: ""
+        columns:
+          - name: click_type
+            data_type: varchar
+          - name: campaign_base_campaign
+            data_type: varchar
+          - name: conversions
+            data_type: float
+          - name: month
+            data_type: date
+          - name: interactions
+            data_type: number
+          - name: average_cpm
+            data_type: float
+          - name: year
+            data_type: number
+          - name: interaction_event_types
+            data_type: varchar
+          - name: campaign_id
+            data_type: number
+          - name: device
+            data_type: varchar
+          - name: week
+            data_type: date
+          - name: active_view_impressions
+            data_type: number
+          - name: clicks
+            data_type: number
+          - name: day_of_week
+            data_type: varchar
+          - name: active_view_measurable_impressions
+            data_type: number
+          - name: quarter
+            data_type: date
+          - name: cost_per_conversion
+            data_type: float
+          - name: active_view_measurability
+            data_type: float
+          - name: average_cpc
+            data_type: float
+          - name: ctr
+            data_type: float
+          - name: conversions_value
+            data_type: float
+          - name: average_cost
+            data_type: float
+          - name: ad_network_type
+            data_type: varchar
+          - name: interaction_rate
+            data_type: float
+          - name: impressions
+            data_type: number
+          - name: id
+            data_type: number
+          - name: active_view_viewability
+            data_type: float
+          - name: customer_id
+            data_type: number
+          - name: value_per_conversion
+            data_type: float
+          - name: hour
+            data_type: number
+          - name: active_view_cpm
+            data_type: float
+          - name: active_view_ctr
+            data_type: float
+          - name: active_view_measurable_cost_micros
+            data_type: number
+          - name: base_ad_group
+            data_type: varchar
+          - name: conversions_from_interactions_rate
+            data_type: float
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: ad_group_stats
+        description: ""
+        columns:
+          - name: campaign_base_campaign
+            data_type: varchar
+          - name: conversions_value
+            data_type: float
+          - name: conversions
+            data_type: float
+          - name: interactions
+            data_type: number
+          - name: ad_network_type
+            data_type: varchar
+          - name: interaction_event_types
+            data_type: varchar
+          - name: campaign_id
+            data_type: number
+          - name: impressions
+            data_type: number
+          - name: view_through_conversions
+            data_type: number
+          - name: id
+            data_type: number
+          - name: device
+            data_type: varchar
+          - name: active_view_viewability
+            data_type: float
+          - name: active_view_impressions
+            data_type: number
+          - name: clicks
+            data_type: number
+          - name: customer_id
+            data_type: number
+          - name: active_view_measurable_impressions
+            data_type: number
+          - name: cost_per_conversion
+            data_type: float
+          - name: active_view_measurable_cost_micros
+            data_type: number
+          - name: active_view_measurability
+            data_type: float
+          - name: base_ad_group
+            data_type: varchar
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: ad_history
+        description: ""
+        columns:
+          - name: ad_group_id
+            data_type: number
+          - name: id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: action_items
+            data_type: varchar
+          - name: ad_strength
+            data_type: varchar
+          - name: added_by_google_ads
+            data_type: boolean
+          - name: device_preference
+            data_type: varchar
+          - name: display_url
+            data_type: varchar
+          - name: final_url_suffix
+            data_type: varchar
+          - name: final_app_urls
+            data_type: varchar
+          - name: final_mobile_urls
+            data_type: varchar
+          - name: final_urls
+            data_type: varchar
+          - name: name
+            data_type: varchar
+          - name: policy_summary_approval_status
+            data_type: varchar
+          - name: policy_summary_review_status
+            data_type: varchar
+          - name: status
+            data_type: varchar
+          - name: system_managed_resource_source
+            data_type: varchar
+          - name: tracking_url_template
+            data_type: varchar
+          - name: type
+            data_type: varchar
+          - name: url_collections
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: ad_stats
+        description: ""
+        columns:
+          - name: campaign_base_campaign
+            data_type: varchar
+          - name: conversions
+            data_type: float
+          - name: interactions
+            data_type: number
+          - name: interaction_event_types
+            data_type: varchar
+          - name: campaign_id
+            data_type: number
+          - name: device
+            data_type: varchar
+          - name: active_view_impressions
+            data_type: number
+          - name: clicks
+            data_type: number
+          - name: active_view_measurable_impressions
+            data_type: number
+          - name: cost_per_conversion
+            data_type: float
+          - name: active_view_measurability
+            data_type: float
+          - name: conversions_value
+            data_type: float
+          - name: ad_id
+            data_type: number
+          - name: ad_network_type
+            data_type: varchar
+          - name: impressions
+            data_type: number
+          - name: active_view_viewability
+            data_type: float
+          - name: view_through_conversions
+            data_type: number
+          - name: ad_group_id
+            data_type: number
+          - name: video_views
+            data_type: number
+          - name: customer_id
+            data_type: number
+          - name: active_view_measurable_cost_micros
+            data_type: number
+          - name: ad_group_base_ad_group
+            data_type: varchar
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: audience_stats
+        description: ""
+        columns:
+          - name: campaign_base_campaign
+            data_type: varchar
+          - name: conversions_value
+            data_type: float
+          - name: conversions
+            data_type: float
+          - name: interactions
+            data_type: number
+          - name: ad_network_type
+            data_type: varchar
+          - name: interaction_event_types
+            data_type: varchar
+          - name: campaign_id
+            data_type: number
+          - name: impressions
+            data_type: number
+          - name: view_through_conversions
+            data_type: number
+          - name: ad_group_id
+            data_type: number
+          - name: device
+            data_type: varchar
+          - name: active_view_viewability
+            data_type: float
+          - name: active_view_impressions
+            data_type: number
+          - name: clicks
+            data_type: number
+          - name: customer_id
+            data_type: number
+          - name: ad_group_criterion_criterion_id
+            data_type: number
+          - name: active_view_measurable_impressions
+            data_type: number
+          - name: active_view_measurable_cost_micros
+            data_type: number
+          - name: active_view_measurability
+            data_type: float
+          - name: ad_group_base_ad_group
+            data_type: varchar
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: campaign_bidding_strategy_history
+        description: ""
+        columns:
+          - name: campaign_id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: cpc_bid_ceiling_micros
+            data_type: number
+          - name: cpc_bid_floor_micros
+            data_type: number
+          - name: enhanced_cpc
+            data_type: varchar
+          - name: enhanced_cpc_enabled
+            data_type: boolean
+          - name: manual_cpa
+            data_type: varchar
+          - name: manual_cpm
+            data_type: varchar
+          - name: manual_cpv
+            data_type: varchar
+          - name: location
+            data_type: varchar
+          - name: location_fraction_micros
+            data_type: number
+          - name: name
+            data_type: varchar
+          - name: status
+            data_type: varchar
+          - name: target_cpa_micros
+            data_type: number
+          - name: target_cpm
+            data_type: varchar
+          - name: target_roas
+            data_type: float
+          - name: type
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: campaign_budget_history
+        description: ""
+        columns:
+          - name: campaign_id
+            data_type: number
+          - name: id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: amount_micros
+            data_type: number
+          - name: delivery_method
+            data_type: varchar
+          - name: explicitly_shared
+            data_type: boolean
+          - name: has_recommended_budget
+            data_type: boolean
+          - name: name
+            data_type: varchar
+          - name: period
+            data_type: varchar
+          - name: recommended_budget_amount_micros
+            data_type: number
+          - name: reference_count
+            data_type: number
+          - name: status
+            data_type: varchar
+          - name: total_amount_micros
+            data_type: number
+          - name: type
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: campaign_conversion_goal_history
+        description: ""
+        columns:
+          - name: campaign_id
+            data_type: number
+          - name: resource_name
+            data_type: varchar
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: biddable
+            data_type: boolean
+          - name: category
+            data_type: varchar
+          - name: origin
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: campaign_criterion_history
+        description: ""
+        columns:
+          - name: campaign_id
+            data_type: number
+          - name: id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: geo_target_constant_id
+            data_type: number
+          - name: mobile_device_id
+            data_type: number
+          - name: operating_system_version_id
+            data_type: number
+          - name: user_interest_id
+            data_type: number
+          - name: user_list_id
+            data_type: number
+          - name: age_range_type
+            data_type: varchar
+          - name: bid_modifier
+            data_type: float
+          - name: carrier_country_code
+            data_type: varchar
+          - name: carrier_name
+            data_type: varchar
+          - name: content_label_type
+            data_type: varchar
+          - name: device_type
+            data_type: varchar
+          - name: display_name
+            data_type: varchar
+          - name: gender_type
+            data_type: varchar
+          - name: income_range_type
+            data_type: varchar
+          - name: ip_block_ip_address
+            data_type: varchar
+          - name: keyword_match_type
+            data_type: varchar
+          - name: keyword_text
+            data_type: varchar
+          - name: language_code
+            data_type: varchar
+          - name: language_name
+            data_type: varchar
+          - name: mobile_app_category_constant_id
+            data_type: number
+          - name: mobile_app_category_constant_name
+            data_type: varchar
+          - name: mobile_application_app_id
+            data_type: varchar
+          - name: mobile_application_name
+            data_type: varchar
+          - name: negative
+            data_type: boolean
+          - name: parental_status_type
+            data_type: varchar
+          - name: placement_url
+            data_type: varchar
+          - name: status
+            data_type: varchar
+          - name: topic_constant_id
+            data_type: number
+          - name: type
+            data_type: varchar
+          - name: youtube_channel_id
+            data_type: varchar
+          - name: youtube_video_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: campaign_geo_target_type_setting_history
+        description: ""
+        columns:
+          - name: campaign_id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: negative_geo_target_type
+            data_type: varchar
+          - name: positive_geo_target_type
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: campaign_history
+        description: ""
+        columns:
+          - name: id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: customer_id
+            data_type: number
+          - name: base_campaign_id
+            data_type: number
+          - name: ad_serving_optimization_status
+            data_type: varchar
+          - name: advertising_channel_subtype
+            data_type: varchar
+          - name: advertising_channel_type
+            data_type: varchar
+          - name: experiment_type
+            data_type: varchar
+          - name: end_date
+            data_type: varchar
+          - name: final_url_suffix
+            data_type: varchar
+          - name: frequency_caps
+            data_type: varchar
+          - name: name
+            data_type: varchar
+          - name: optimization_score
+            data_type: float
+          - name: payment_mode
+            data_type: varchar
+          - name: serving_status
+            data_type: varchar
+          - name: start_date
+            data_type: varchar
+          - name: status
+            data_type: varchar
+          - name: tracking_url_template
+            data_type: varchar
+          - name: vanity_pharma_display_url_mode
+            data_type: varchar
+          - name: vanity_pharma_text
+            data_type: varchar
+          - name: video_brand_safety_suitability
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: campaign_hourly_stats
+        description: ""
+        columns:
+          - name: base_campaign
+            data_type: varchar
+          - name: click_type
+            data_type: varchar
+          - name: conversions
+            data_type: float
+          - name: month
+            data_type: date
+          - name: interactions
+            data_type: number
+          - name: average_cpm
+            data_type: float
+          - name: year
+            data_type: number
+          - name: interaction_event_types
+            data_type: varchar
+          - name: id
+            data_type: number
+          - name: device
+            data_type: varchar
+          - name: week
+            data_type: date
+          - name: active_view_impressions
+            data_type: number
+          - name: clicks
+            data_type: number
+          - name: quarter
+            data_type: date
+          - name: day_of_week
+            data_type: varchar
+          - name: active_view_measurable_impressions
+            data_type: number
+          - name: cost_per_conversion
+            data_type: float
+          - name: average_cpc
+            data_type: float
+          - name: active_view_measurability
+            data_type: float
+          - name: ctr
+            data_type: float
+          - name: conversions_value
+            data_type: float
+          - name: average_cost
+            data_type: float
+          - name: ad_network_type
+            data_type: varchar
+          - name: impressions
+            data_type: number
+          - name: active_view_viewability
+            data_type: float
+          - name: customer_id
+            data_type: number
+          - name: value_per_conversion
+            data_type: float
+          - name: hour
+            data_type: number
+          - name: active_view_cpm
+            data_type: float
+          - name: active_view_ctr
+            data_type: float
+          - name: active_view_measurable_cost_micros
+            data_type: number
+          - name: conversions_from_interactions_rate
+            data_type: float
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: campaign_network_setting_history
+        description: ""
+        columns:
+          - name: campaign_id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: target_content_network
+            data_type: boolean
+          - name: target_google_search
+            data_type: boolean
+          - name: target_partner_search_network
+            data_type: boolean
+          - name: target_search_network
+            data_type: boolean
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean
+
+      - name: campaign_stats
+        description: ""
+        columns:
+          - name: base_campaign
+            data_type: varchar
+          - name: conversions_value
+            data_type: float
+          - name: conversions
+            data_type: float
+          - name: interactions
+            data_type: number
+          - name: ad_network_type
+            data_type: varchar
+          - name: interaction_event_types
+            data_type: varchar
+          - name: id
+            data_type: number
+          - name: impressions
+            data_type: number
+          - name: active_view_viewability
+            data_type: float
+          - name: view_through_conversions
+            data_type: number
+          - name: device
+            data_type: varchar
+          - name: active_view_impressions
+            data_type: number
+          - name: clicks
+            data_type: number
+          - name: customer_id
+            data_type: number
+          - name: active_view_measurable_impressions
+            data_type: number
+          - name: active_view_measurable_cost_micros
+            data_type: number
+          - name: active_view_measurability
+            data_type: float
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: click_stats
+        description: ""
+        columns:
+          - name: clicks
+            data_type: number
+          - name: customer_id
+            data_type: number
+          - name: gclid
+            data_type: varchar
+          - name: campaign_id
+            data_type: number
+          - name: ad_group_id
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: keyword_stats
+        description: ""
+        columns:
+          - name: campaign_base_campaign
+            data_type: varchar
+          - name: conversions_value
+            data_type: float
+          - name: conversions
+            data_type: float
+          - name: interactions
+            data_type: number
+          - name: ad_network_type
+            data_type: varchar
+          - name: interaction_event_types
+            data_type: varchar
+          - name: campaign_id
+            data_type: number
+          - name: impressions
+            data_type: number
+          - name: view_through_conversions
+            data_type: number
+          - name: ad_group_id
+            data_type: number
+          - name: device
+            data_type: varchar
+          - name: active_view_viewability
+            data_type: float
+          - name: active_view_impressions
+            data_type: number
+          - name: clicks
+            data_type: number
+          - name: customer_id
+            data_type: number
+          - name: ad_group_criterion_criterion_id
+            data_type: number
+          - name: active_view_measurable_impressions
+            data_type: number
+          - name: active_view_measurable_cost_micros
+            data_type: number
+          - name: active_view_measurability
+            data_type: float
+          - name: ad_group_base_ad_group
+            data_type: varchar
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: landing_page_stats
+        description: ""
+        columns:
+          - name: campaign_id
+            data_type: number
+          - name: impressions
+            data_type: number
+          - name: ad_group_id
+            data_type: number
+          - name: mobile_friendly_clicks_percentage
+            data_type: float
+          - name: clicks
+            data_type: number
+          - name: customer_id
+            data_type: number
+          - name: resource_name
+            data_type: varchar
+          - name: unexpanded_final_url
+            data_type: varchar
+          - name: speed_score
+            data_type: number
+          - name: average_cpc
+            data_type: float
+          - name: valid_accelerated_mobile_pages_clicks_percentage
+            data_type: float
+          - name: ctr
+            data_type: float
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: lead_form_submission_data
+        description: ""
+        columns:
+          - name: id
+            data_type: varchar
+          - name: submission_date_time
+            data_type: timestamp_ntz
+          - name: resource_name
+            data_type: varchar
+          - name: custom_lead_form_submission_fields
+            data_type: varchar
+          - name: ad_id
+            data_type: number
+          - name: campaign_id
+            data_type: number
+          - name: lead_form_submission_fields
+            data_type: varchar
+          - name: ad_group_id
+            data_type: number
+          - name: gclid
+            data_type: varchar
+          - name: customer_id
+            data_type: number
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: local_services_lead
+        description: ""
+        columns:
+          - name: note_edit_date_time
+            data_type: timestamp_ntz
+          - name: category_id
+            data_type: varchar
+          - name: credit_details_credit_state
+            data_type: varchar
+          - name: creation_date_time
+            data_type: timestamp_ntz
+          - name: service_id
+            data_type: varchar
+          - name: id
+            data_type: number
+          - name: lead_charged
+            data_type: boolean
+          - name: lead_status
+            data_type: varchar
+          - name: customer_id
+            data_type: number
+          - name: credit_details_credit_state_last_update_date_time
+            data_type: timestamp_ntz
+          - name: contact_details
+            data_type: varchar
+          - name: locale
+            data_type: varchar
+          - name: note_description
+            data_type: varchar
+          - name: lead_type
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: local_services_lead_conversations
+        description: ""
+        columns:
+          - name: message_details_attachment_urls
+            data_type: varchar
+          - name: conversation_channel
+            data_type: varchar
+          - name: customer_id
+            data_type: number
+          - name: phone_call_details_call_duration_millis
+            data_type: number
+          - name: participant_type
+            data_type: varchar
+          - name: phone_call_details_call_recording_url
+            data_type: varchar
+          - name: event_date_time
+            data_type: timestamp_ntz
+          - name: id
+            data_type: number
+          - name: message_details_text
+            data_type: varchar
+          - name: local_services_lead_id
+            data_type: number
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: search_keyword_stats
+        description: ""
+        columns:
+          - name: conversions_value
+            data_type: float
+          - name: resource_name
+            data_type: varchar
+          - name: average_cpm
+            data_type: float
+          - name: campaign_id
+            data_type: number
+          - name: impressions
+            data_type: number
+          - name: ad_group_id
+            data_type: number
+          - name: view_through_conversions
+            data_type: number
+          - name: absolute_top_impression_percentage
+            data_type: float
+          - name: clicks
+            data_type: number
+          - name: ad_group_criterion_criterion_id
+            data_type: number
+          - name: top_impression_percentage
+            data_type: float
+          - name: average_cpc
+            data_type: float
+          - name: ctr
+            data_type: float
+          - name: conversions_from_interactions_rate
+            data_type: float
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: customer_id
+            data_type: number
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: search_term_keyword_stats
+        description: ""
+        columns:
+          - name: customer_id
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: resource_name
+            data_type: varchar
+          - name: search_term
+            data_type: varchar
+          - name: conversions_value
+            data_type: float
+          - name: conversions
+            data_type: float
+          - name: campaign_id
+            data_type: number
+          - name: search_term_match_type
+            data_type: varchar
+          - name: impressions
+            data_type: number
+          - name: ad_group_id
+            data_type: number
+          - name: view_through_conversions
+            data_type: number
+          - name: absolute_top_impression_percentage
+            data_type: float
+          - name: clicks
+            data_type: number
+          - name: keyword_ad_group_criterion
+            data_type: varchar
+          - name: top_impression_percentage
+            data_type: float
+          - name: status
+            data_type: varchar
+          - name: info_text
+            data_type: varchar
+          - name: conversions_from_interactions_value_per_interaction
+            data_type: float
+          - name: average_cpc
+            data_type: float
+          - name: ctr
+            data_type: float
+          - name: conversions_from_interactions_rate
+            data_type: float
+          - name: cost_micros
+            data_type: number
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: search_term_stats
+        description: ""
+        columns:
+          - name: resource_name
+            data_type: varchar
+          - name: search_term
+            data_type: varchar
+          - name: conversions
+            data_type: float
+          - name: search_term_match_type
+            data_type: varchar
+          - name: campaign_id
+            data_type: number
+          - name: impressions
+            data_type: number
+          - name: ad_group_id
+            data_type: number
+          - name: view_through_conversions
+            data_type: number
+          - name: absolute_top_impression_percentage
+            data_type: float
+          - name: clicks
+            data_type: number
+          - name: customer_id
+            data_type: number
+          - name: top_impression_percentage
+            data_type: float
+          - name: status
+            data_type: varchar
+          - name: conversions_from_interactions_value_per_interaction
+            data_type: float
+          - name: average_cpc
+            data_type: float
+          - name: ctr
+            data_type: float
+          - name: conversions_from_interactions_rate
+            data_type: float
+          - name: cost_micros
+            data_type: number
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: user_interest
+        description: ""
+        columns:
+          - name: id
+            data_type: number
+          - name: parent_id
+            data_type: number
+          - name: availabilities
+            data_type: varchar
+          - name: launched_to_all
+            data_type: boolean
+          - name: name
+            data_type: varchar
+          - name: taxonomy_type
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: video_responsive_ad_history
+        description: ""
+        columns:
+          - name: ad_group_id
+            data_type: number
+          - name: ad_id
+            data_type: number
+          - name: updated_at
+            data_type: timestamp_tz
+          - name: breadcrumb_1
+            data_type: varchar
+          - name: breadcrumb_2
+            data_type: varchar
+          - name: call_to_actions
+            data_type: varchar
+          - name: descriptions
+            data_type: varchar
+          - name: headlines
+            data_type: varchar
+          - name: long_headlines
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: _fivetran_start
+            data_type: timestamp_tz
+          - name: _fivetran_end
+            data_type: timestamp_tz
+          - name: _fivetran_active
+            data_type: boolean

@@ -1,0 +1,673 @@
+version: 2
+
+sources:
+  - name: youtube_analytics__sources
+    description: ""
+    database: raw
+    schema: youtube_analytics
+    tables:
+      - name: audience_retention
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: video_id
+            data_type: varchar
+          - name: audience_watch_ratio
+            data_type: float
+          - name: relative_retention_performance
+            data_type: float
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: elapsed_video_time_ratio
+            data_type: varchar
+
+      - name: caption
+        description: ""
+        columns:
+          - name: languages
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: start
+            data_type: float
+          - name: duration
+            data_type: float
+          - name: text
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: channel
+        description: ""
+        columns:
+          - name: id
+            data_type: varchar
+          - name: kind
+            data_type: varchar
+          - name: etag
+            data_type: varchar
+          - name: snippet_title
+            data_type: varchar
+          - name: snippet_description
+            data_type: varchar
+          - name: snippet_custom_url
+            data_type: varchar
+          - name: snippet_published_at
+            data_type: timestamp_ntz
+          - name: snippet_thumbnails
+            data_type: varchar
+          - name: snippet_default_language
+            data_type: varchar
+          - name: snippet_localized
+            data_type: varchar
+          - name: snippet_country
+            data_type: varchar
+          - name: content_details_likes
+            data_type: varchar
+          - name: content_details_uploads
+            data_type: varchar
+          - name: statistics_view_count
+            data_type: number
+          - name: statistics_subscriber_count
+            data_type: number
+          - name: statistics_hidden_subscriber_count
+            data_type: boolean
+          - name: statistics_video_count
+            data_type: number
+          - name: topic_details
+            data_type: varchar
+          - name: status
+            data_type: varchar
+          - name: branding_settings
+            data_type: varchar
+          - name: content_owner_details
+            data_type: varchar
+          - name: localizations
+            data_type: varchar
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: channel_basic_a_2
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: views
+            data_type: number
+          - name: comments
+            data_type: number
+          - name: likes
+            data_type: number
+          - name: dislikes
+            data_type: number
+          - name: shares
+            data_type: number
+          - name: channel_id
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: country_code
+            data_type: varchar
+          - name: live_or_on_demand
+            data_type: varchar
+          - name: subscribed_status
+            data_type: varchar
+          - name: videos_added_to_playlists
+            data_type: number
+          - name: videos_removed_from_playlists
+            data_type: number
+          - name: watch_time_minutes
+            data_type: float
+          - name: average_view_duration_seconds
+            data_type: float
+          - name: average_view_duration_percentage
+            data_type: float
+          - name: annotation_click_through_rate
+            data_type: float
+          - name: annotation_close_rate
+            data_type: float
+          - name: annotation_impressions
+            data_type: number
+          - name: annotation_clickable_impressions
+            data_type: number
+          - name: annotation_closable_impressions
+            data_type: number
+          - name: annotation_clicks
+            data_type: number
+          - name: annotation_closes
+            data_type: number
+          - name: card_click_rate
+            data_type: float
+          - name: card_teaser_click_rate
+            data_type: float
+          - name: card_impressions
+            data_type: number
+          - name: card_teaser_impressions
+            data_type: number
+          - name: card_clicks
+            data_type: number
+          - name: card_teaser_clicks
+            data_type: number
+          - name: subscribers_gained
+            data_type: number
+          - name: subscribers_lost
+            data_type: number
+          - name: red_views
+            data_type: number
+          - name: red_watch_time_minutes
+            data_type: float
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: engaged_views
+            data_type: number
+
+      - name: channel_cards_a_1
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: channel_id
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: country_code
+            data_type: varchar
+          - name: live_or_on_demand
+            data_type: varchar
+          - name: subscribed_status
+            data_type: varchar
+          - name: card_type
+            data_type: number
+          - name: card_id
+            data_type: varchar
+          - name: card_click_rate
+            data_type: float
+          - name: card_teaser_click_rate
+            data_type: float
+          - name: card_impressions
+            data_type: number
+          - name: card_teaser_impressions
+            data_type: number
+          - name: card_clicks
+            data_type: number
+          - name: card_teaser_clicks
+            data_type: number
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: channel_combined_a_2
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: views
+            data_type: number
+          - name: channel_id
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: country_code
+            data_type: varchar
+          - name: live_or_on_demand
+            data_type: varchar
+          - name: subscribed_status
+            data_type: varchar
+          - name: playback_location_type
+            data_type: number
+          - name: traffic_source_type
+            data_type: number
+          - name: device_type
+            data_type: number
+          - name: operating_system
+            data_type: number
+          - name: watch_time_minutes
+            data_type: float
+          - name: average_view_duration_seconds
+            data_type: float
+          - name: average_view_duration_percentage
+            data_type: float
+          - name: red_views
+            data_type: number
+          - name: red_watch_time_minutes
+            data_type: float
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: engaged_views
+            data_type: number
+
+      - name: channel_demographics_a_1
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: gender
+            data_type: varchar
+          - name: channel_id
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: country_code
+            data_type: varchar
+          - name: live_or_on_demand
+            data_type: varchar
+          - name: subscribed_status
+            data_type: varchar
+          - name: age_group
+            data_type: varchar
+          - name: views_percentage
+            data_type: float
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: channel_device_os_a_2
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: views
+            data_type: number
+          - name: channel_id
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: country_code
+            data_type: varchar
+          - name: live_or_on_demand
+            data_type: varchar
+          - name: subscribed_status
+            data_type: varchar
+          - name: device_type
+            data_type: number
+          - name: operating_system
+            data_type: number
+          - name: watch_time_minutes
+            data_type: float
+          - name: average_view_duration_seconds
+            data_type: float
+          - name: average_view_duration_percentage
+            data_type: float
+          - name: red_views
+            data_type: number
+          - name: red_watch_time_minutes
+            data_type: float
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: engaged_views
+            data_type: number
+
+      - name: channel_end_screens_a_1
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: channel_id
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: country_code
+            data_type: varchar
+          - name: live_or_on_demand
+            data_type: varchar
+          - name: subscribed_status
+            data_type: varchar
+          - name: end_screen_element_type
+            data_type: number
+          - name: end_screen_element_id
+            data_type: varchar
+          - name: end_screen_element_clicks
+            data_type: number
+          - name: end_screen_element_impressions
+            data_type: number
+          - name: end_screen_element_click_rate
+            data_type: float
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: channel_playback_location_a_2
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: views
+            data_type: number
+          - name: channel_id
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: country_code
+            data_type: varchar
+          - name: live_or_on_demand
+            data_type: varchar
+          - name: subscribed_status
+            data_type: varchar
+          - name: playback_location_type
+            data_type: number
+          - name: playback_location_detail
+            data_type: varchar
+          - name: watch_time_minutes
+            data_type: float
+          - name: average_view_duration_seconds
+            data_type: float
+          - name: average_view_duration_percentage
+            data_type: float
+          - name: red_views
+            data_type: number
+          - name: red_watch_time_minutes
+            data_type: float
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: engaged_views
+            data_type: number
+
+      - name: channel_province_a_2
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: views
+            data_type: number
+          - name: channel_id
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: country_code
+            data_type: varchar
+          - name: live_or_on_demand
+            data_type: varchar
+          - name: subscribed_status
+            data_type: varchar
+          - name: province_code
+            data_type: varchar
+          - name: watch_time_minutes
+            data_type: float
+          - name: average_view_duration_seconds
+            data_type: float
+          - name: average_view_duration_percentage
+            data_type: float
+          - name: annotation_click_through_rate
+            data_type: float
+          - name: annotation_close_rate
+            data_type: float
+          - name: annotation_impressions
+            data_type: number
+          - name: annotation_clickable_impressions
+            data_type: number
+          - name: annotation_closable_impressions
+            data_type: number
+          - name: annotation_clicks
+            data_type: number
+          - name: annotation_closes
+            data_type: number
+          - name: card_click_rate
+            data_type: float
+          - name: card_teaser_click_rate
+            data_type: float
+          - name: card_impressions
+            data_type: number
+          - name: card_teaser_impressions
+            data_type: number
+          - name: card_clicks
+            data_type: number
+          - name: card_teaser_clicks
+            data_type: number
+          - name: red_views
+            data_type: number
+          - name: red_watch_time_minutes
+            data_type: float
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: engaged_views
+            data_type: number
+
+      - name: channel_sharing_service_a_1
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: shares
+            data_type: number
+          - name: channel_id
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: country_code
+            data_type: varchar
+          - name: live_or_on_demand
+            data_type: varchar
+          - name: subscribed_status
+            data_type: varchar
+          - name: sharing_service
+            data_type: number
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: channel_subtitles_a_2
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: views
+            data_type: number
+          - name: channel_id
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: country_code
+            data_type: varchar
+          - name: live_or_on_demand
+            data_type: varchar
+          - name: subscribed_status
+            data_type: varchar
+          - name: subtitle_language
+            data_type: varchar
+          - name: subtitle_language_autotranslated
+            data_type: varchar
+          - name: watch_time_minutes
+            data_type: float
+          - name: average_view_duration_seconds
+            data_type: float
+          - name: average_view_duration_percentage
+            data_type: float
+          - name: red_views
+            data_type: number
+          - name: red_watch_time_minutes
+            data_type: float
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: engaged_views
+            data_type: number
+
+      - name: channel_traffic_source_a_2
+        description: ""
+        columns:
+          - name: date
+            data_type: date
+          - name: _fivetran_id
+            data_type: varchar
+          - name: views
+            data_type: number
+          - name: channel_id
+            data_type: varchar
+          - name: video_id
+            data_type: varchar
+          - name: country_code
+            data_type: varchar
+          - name: live_or_on_demand
+            data_type: varchar
+          - name: subscribed_status
+            data_type: varchar
+          - name: traffic_source_type
+            data_type: number
+          - name: traffic_source_detail
+            data_type: varchar
+          - name: watch_time_minutes
+            data_type: float
+          - name: average_view_duration_seconds
+            data_type: float
+          - name: average_view_duration_percentage
+            data_type: float
+          - name: red_views
+            data_type: number
+          - name: red_watch_time_minutes
+            data_type: float
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+          - name: engaged_views
+            data_type: number
+
+      - name: comment
+        description: ""
+        columns:
+          - name: id
+            data_type: varchar
+          - name: kind
+            data_type: varchar
+          - name: etag
+            data_type: varchar
+          - name: snippet_author_display_name
+            data_type: varchar
+          - name: snippet_author_profile_image_url
+            data_type: varchar
+          - name: snippet_author_channel_url
+            data_type: varchar
+          - name: snippet_author_channel_id
+            data_type: varchar
+          - name: snippet_channel_id
+            data_type: varchar
+          - name: snippet_text_display
+            data_type: varchar
+          - name: snippet_text_original
+            data_type: varchar
+          - name: snippet_parent_id
+            data_type: varchar
+          - name: snippet_can_rate
+            data_type: boolean
+          - name: snippet_viewer_rating
+            data_type: varchar
+          - name: snippet_like_count
+            data_type: number
+          - name: snippet_moderation_status
+            data_type: varchar
+          - name: snippet_published_at
+            data_type: timestamp_ntz
+          - name: snippet_updated_at
+            data_type: timestamp_ntz
+          - name: video_id
+            data_type: varchar
+          - name: can_reply
+            data_type: boolean
+          - name: total_reply_count
+            data_type: number
+          - name: is_public
+            data_type: boolean
+          - name: _fivetran_synced
+            data_type: timestamp_tz
+
+      - name: video
+        description: ""
+        columns:
+          - name: id
+            data_type: varchar
+          - name: kind
+            data_type: varchar
+          - name: etag
+            data_type: varchar
+          - name: snippet_published_at
+            data_type: timestamp_ntz
+          - name: snippet_channel_id
+            data_type: varchar
+          - name: snippet_title
+            data_type: varchar
+          - name: snippet_description
+            data_type: varchar
+          - name: snippet_thumbnails
+            data_type: varchar
+          - name: snippet_channel_title
+            data_type: varchar
+          - name: snippet_tags
+            data_type: varchar
+          - name: snippet_category_id
+            data_type: varchar
+          - name: snippet_live_broadcast_content
+            data_type: varchar
+          - name: snippet_default_language
+            data_type: varchar
+          - name: snippet_localized
+            data_type: varchar
+          - name: snippet_default_audio_language
+            data_type: varchar
+          - name: content_details_duration
+            data_type: varchar
+          - name: content_details_dimension
+            data_type: varchar
+          - name: content_details_definition
+            data_type: varchar
+          - name: content_details_caption
+            data_type: varchar
+          - name: content_details_licensed_content
+            data_type: boolean
+          - name: content_details_region_restriction
+            data_type: varchar
+          - name: content_details_projection
+            data_type: varchar
+          - name: content_details_has_custom_thumbnail
+            data_type: boolean
+          - name: upload_status
+            data_type: varchar
+          - name: status_failure_reason
+            data_type: varchar
+          - name: status_rejection_reason
+            data_type: varchar
+          - name: privacy_status
+            data_type: varchar
+          - name: status_publish_at
+            data_type: timestamp_ntz
+          - name: status_license
+            data_type: varchar
+          - name: status_embeddable
+            data_type: boolean
+          - name: status_public_stats_viewable
+            data_type: boolean
+          - name: status_made_for_kids
+            data_type: boolean
+          - name: status_self_declared_made_for_kids
+            data_type: boolean
+          - name: statistics_view_count
+            data_type: varchar
+          - name: statistics_like_count
+            data_type: varchar
+          - name: statistics_dislike_count
+            data_type: varchar
+          - name: statistics_favorite_count
+            data_type: varchar
+          - name: statistics_comment_count
+            data_type: varchar
+          - name: player_embed_html
+            data_type: varchar
+          - name: player_embed_height
+            data_type: number
+          - name: player_embed_width
+            data_type: number
+          - name: _fivetran_synced
+            data_type: timestamp_tz

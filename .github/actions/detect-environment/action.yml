@@ -1,0 +1,59 @@
+name: 'Detect and Configure Environment'
+description: 'Centralized environment detection and configuration for all workflows'
+
+inputs:
+  event-name:
+    description: 'GitHub event name (push, pull_request, workflow_dispatch)'
+    required: false
+    default: ${{ github.event_name }}
+  ref-name:
+    description: 'Branch or ref name'
+    required: false
+    default: ${{ github.ref_name }}
+  base-ref:
+    description: 'Base ref for pull requests'
+    required: false
+    default: ${{ github.event.pull_request.base.ref }}
+  manual-environment:
+    description: 'Manual environment override (for workflow_dispatch)'
+    required: false
+    default: ''
+
+outputs:
+  environment:
+    description: 'Target environment (dev, staging, prod)'
+    value: ${{ steps.detect.outputs.environment }}
+  dbt-target:
+    description: 'dbt target profile (dev, test, prod)'
+    value: ${{ steps.detect.outputs.dbt-target }}
+  is-production:
+    description: 'Whether this is production environment'
+    value: ${{ steps.detect.outputs.is-production }}
+  is-pull-request:
+    description: 'Whether this is a pull request event'
+    value: ${{ steps.detect.outputs.is-pull-request }}
+  skip-integration-tests:
+    description: 'Whether to skip integration tests'
+    value: ${{ steps.detect.outputs.skip-integration-tests }}
+  aws-region:
+    description: 'AWS region for this environment'
+    value: ${{ steps.detect.outputs.aws-region }}
+  aws-account-id:
+    description: 'AWS account ID'
+    value: ${{ steps.detect.outputs.aws-account-id }}
+  ecr-repository:
+    description: 'ECR repository name'
+    value: ${{ steps.detect.outputs.ecr-repository }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Detect and configure environment
+      id: detect
+      shell: bash
+      env:
+        INPUT_EVENT_NAME: ${{ inputs.event-name }}
+        INPUT_REF_NAME: ${{ inputs.ref-name }}
+        INPUT_BASE_REF: ${{ inputs.base-ref }}
+        INPUT_MANUAL_ENVIRONMENT: ${{ inputs.manual-environment }}
+      run: python -m scripts.environment_manager github-actions

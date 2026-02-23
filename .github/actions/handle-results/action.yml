@@ -1,0 +1,197 @@
+name: 'Handle Test and Quality Results'
+description: 'Standardized handling of errors, warnings, and test results across all workflows'
+
+inputs:
+  environment:
+    description: 'Target environment (dev, staging, prod)'
+    required: true
+  is-production:
+    description: 'Whether this is production environment'
+    required: false
+    default: 'false'
+  context:
+    description: 'Context of execution (pr, deploy, security)'
+    required: true
+  quality-check-exit-code:
+    description: 'Exit code from quality checks'
+    required: false
+    default: '0'
+  unit-test-exit-code:
+    description: 'Exit code from unit tests'
+    required: false
+    default: '0'
+  integration-test-exit-code:
+    description: 'Exit code from integration tests'
+    required: false
+    default: '0'
+  security-scan-exit-code:
+    description: 'Exit code from security scans'
+    required: false
+    default: '0'
+  dbt-compile-exit-code:
+    description: 'Exit code from dbt compilation'
+    required: false
+    default: '0'
+  allow-warnings:
+    description: 'Whether to allow warnings without failing'
+    required: false
+    default: 'true'
+
+outputs:
+  should-fail:
+    description: 'Whether the workflow should fail'
+    value: ${{ steps.analyze.outputs.should-fail }}
+  has-errors:
+    description: 'Whether there are blocking errors'
+    value: ${{ steps.analyze.outputs.has-errors }}
+  has-warnings:
+    description: 'Whether there are warnings'
+    value: ${{ steps.analyze.outputs.has-warnings }}
+  summary:
+    description: 'Human readable summary of results'
+    value: ${{ steps.analyze.outputs.summary }}
+  error-count:
+    description: 'Number of errors found'
+    value: ${{ steps.analyze.outputs.error-count }}
+  warning-count:
+    description: 'Number of warnings found'
+    value: ${{ steps.analyze.outputs.warning-count }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Analyze results and classify issues
+      id: analyze
+      shell: bash
+      run: |
+        echo "Analyzing results for ${{ inputs.context }} in ${{ inputs.environment }} environment"
+
+        # Initialize counters
+        error_count=0
+        warning_count=0
+        has_errors="false"
+        has_warnings="false"
+        should_fail="false"
+
+        # Classification rules based on context and environment
+        is_production="${{ inputs.is-production }}"
+        context="${{ inputs.context }}"
+        allow_warnings="${{ inputs.allow-warnings }}"
+
+        echo "## Result Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Context**: $context" >> $GITHUB_STEP_SUMMARY
+        echo "- **Production Mode**: $is_production" >> $GITHUB_STEP_SUMMARY
+        echo "- **Allow Warnings**: $allow_warnings" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Quality checks (always critical)
+        if [ "${{ inputs.quality-check-exit-code }}" != "0" ]; then
+          error_count=$((error_count + 1))
+          has_errors="true"
+          echo "❌ **Quality Checks**: Critical failure" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ **Quality Checks**: Passed" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # dbt compilation (always critical)
+        if [ "${{ inputs.dbt-compile-exit-code }}" != "0" ]; then
+          error_count=$((error_count + 1))
+          has_errors="true"
+          echo "❌ **dbt Compilation**: Failed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ **dbt Compilation**: Passed" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Unit tests (always critical)
+        if [ "${{ inputs.unit-test-exit-code }}" != "0" ]; then
+          error_count=$((error_count + 1))
+          has_errors="true"
+          echo "❌ **Unit Tests**: Failed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ **Unit Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Integration tests (context-dependent)
+        if [ "${{ inputs.integration-test-exit-code }}" != "0" ]; then
+          if [ "$is_production" = "true" ] || [ "$context" = "deploy" ]; then
+            # Strict for production deployments
+            error_count=$((error_count + 1))
+            has_errors="true"
+            echo "❌ **Integration Tests**: Failed (production/deployment - blocking)" >> $GITHUB_STEP_SUMMARY
+          else
+            # Warnings for development/PR context
+            warning_count=$((warning_count + 1))
+            has_warnings="true"
+            echo "⚠️ **Integration Tests**: Failed (non-production - warning)" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "✅ **Integration Tests**: Passed" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Security scans (severity-based)
+        if [ "${{ inputs.security-scan-exit-code }}" != "0" ]; then
+          if [ "$is_production" = "true" ]; then
+            # Production security issues are errors
+            error_count=$((error_count + 1))
+            has_errors="true"
+            echo "❌ **Security Scan**: Issues found (production - blocking)" >> $GITHUB_STEP_SUMMARY
+          else
+            # Non-production security issues are warnings
+            warning_count=$((warning_count + 1))
+            has_warnings="true"
+            echo "⚠️ **Security Scan**: Issues found (non-production - warning)" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "✅ **Security Scan**: No issues" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Determine if workflow should fail
+        if [ "$has_errors" = "true" ]; then
+          should_fail="true"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🚫 **Workflow Status**: FAILED due to $error_count error(s)" >> $GITHUB_STEP_SUMMARY
+        elif [ "$has_warnings" = "true" ] && [ "$allow_warnings" != "true" ]; then
+          should_fail="true"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🚫 **Workflow Status**: FAILED due to $warning_count warning(s) (warnings not allowed)" >> $GITHUB_STEP_SUMMARY
+        else
+          if [ "$has_warnings" = "true" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Workflow Status**: PASSED with $warning_count warning(s)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Workflow Status**: PASSED - all checks successful" >> $GITHUB_STEP_SUMMARY
+          fi
+        fi
+
+        # Create summary text
+        if [ "$error_count" -gt "0" ] && [ "$warning_count" -gt "0" ]; then
+          summary="$error_count errors, $warning_count warnings"
+        elif [ "$error_count" -gt "0" ]; then
+          summary="$error_count errors"
+        elif [ "$warning_count" -gt "0" ]; then
+          summary="$warning_count warnings"
+        else
+          summary="all checks passed"
+        fi
+
+        # Output results
+        echo "should-fail=$should_fail" >> $GITHUB_OUTPUT
+        echo "has-errors=$has_errors" >> $GITHUB_OUTPUT
+        echo "has-warnings=$has_warnings" >> $GITHUB_OUTPUT
+        echo "summary=$summary" >> $GITHUB_OUTPUT
+        echo "error-count=$error_count" >> $GITHUB_OUTPUT
+        echo "warning-count=$warning_count" >> $GITHUB_OUTPUT
+
+        echo "Analysis complete: $summary (should_fail=$should_fail)"
+
+    - name: Set workflow status
+      shell: bash
+      run: |
+        if [ "${{ steps.analyze.outputs.should-fail }}" = "true" ]; then
+          echo "❌ Workflow failed: ${{ steps.analyze.outputs.summary }}"
+          exit 1
+        else
+          echo "✅ Workflow passed: ${{ steps.analyze.outputs.summary }}"
+        fi
